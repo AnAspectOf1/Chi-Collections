@@ -8,8 +8,6 @@
 
 namespace chi {
 
-	class AllocException : public Exception {};
-
 	template <class T>
 	class Allocator {
 	public:
@@ -80,17 +78,27 @@ namespace chi {
 
 			T* new_ptr = (T*)::realloc( this->_pointer, new_size );
 			if ( new_ptr == 0 )	throw AllocException();
+
 			this->_pointer = new_ptr;
+			this->_count = new_size;
 		}
 
 		void _shrink( Size decrement ) {
 			Size new_size = this->_count - decrement;
 
-			T* new_ptr = (T*)::realloc( this->_pointer, new_size );
-#ifndef NDEBUG
-			if ( new_ptr == 0 )	throw AllocException();
-#endif
-			this->_pointer = new_ptr;
+			if ( new_size > 0 ) {
+				T* new_ptr = (T*)::realloc( this->_pointer, new_size );
+	#ifndef NDEBUG
+				if ( new_ptr == 0 )	throw AllocException();
+	#endif
+				this->_pointer = new_ptr;
+				this->_count = new_size;
+			}
+			else {
+				::free( this->_pointer );
+				this->_pointer = 0;
+				this->_count = 0;
+			}
 		}
 	};
 
@@ -141,10 +149,12 @@ namespace chi {
 				this->_pointer = new_ptr;
 				this->_capacity = new_capacity;
 			}
+			
+			this->_count = new_size;
 		}
 
 		void _shrink( Size decrement ) {
-			this->_count = this->_count - decrement;
+			this->_count -= decrement;
 		}
 	};
 }

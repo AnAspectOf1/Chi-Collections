@@ -18,12 +18,12 @@ namespace chi {
 		friend Linked;
 
 	protected:
+		LinkBase() : prev(0), next(0) {}
+
+	public:		
 		LinkBase* prev;
 		LinkBase* next;
 
-		LinkBase() : prev(0), next(0) {}
-
-	public:
 		template <class T>
 		void append( const T& element ) {
 			Link<T>* new_link = new(std::nothrow) Link<T>( element );
@@ -68,12 +68,14 @@ namespace chi {
 		Link<T>& operator=( const T& element ) {
 			this->element = element;
 		}
+
+		T& operator*()	{ return this->element; }
 	};
 
 	class Linked : public Collection {
 		LinkBase* head;
-		SSize first;
-		SSize last;
+		SSize _first;
+		SSize _last;
 
 	protected:
 		LinkBase* linkAt( SSize index ) const {
@@ -109,6 +111,7 @@ namespace chi {
 
 		LinkBase* lastLink() {
 			LinkBase* e = head;
+			
 			while ( e->next != 0 ) {
 				e = e->next;
 			}
@@ -116,6 +119,8 @@ namespace chi {
 		}
 
 	public:
+		Linked() : head(0), _first(0), _last(0) {}
+	
 		template <class T>
 		T& at( SSize index )	{ return ((Link<T>*)linkAt( index )).element; }
 		template <class T>
@@ -123,16 +128,33 @@ namespace chi {
 
 		template <class T>
 		void append( const T& element ) {
-			LinkBase* last_link = lastLink();
+			
+			if ( this->head != 0 ) {
+				LinkBase* last_link = lastLink();
 
-			Link<T>* new_link = new(std::nothrow) Link<T>( element );
-			if ( new_link == 0 )	throw AllocException();
+				Link<T>* new_link = new(std::nothrow) Link<T>( element );
+				if ( new_link == 0 )	throw AllocException();
 	
-			last_link->next = new_link;
-			last++;
+				last_link->next = new_link;
+				_last++;
+			}
+			else {
+				Link<T>* new_link = new(std::nothrow) Link<T>( element );
+				if ( new_link == 0 )	throw AllocException();
+
+				this->head = new_link;
+			}
 		}
 
-		Size count() const	{ return last - first + 1; }
+		Size count() const	{ return _last - _first + ( this->head != 0 ? 1 : 0 ); }
+
+		LinkBase* first() {
+			return linkAtBackward( _first );
+		}
+
+		LinkBase* last() {
+			return linkAtBackward( _last );
+		}
 	};
 
 }

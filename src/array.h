@@ -38,7 +38,7 @@ namespace chi {
 		}
 
 		// Initialize _ptr copying everything from other _ptr
-		void init( const T* other ) {			
+		void init( const List<T>& other ) {			
 			for ( Size i = 0; i < this->alloc.count(); i++ ) {
 				this->alloc[i] = T( other[i] );
 			}
@@ -47,8 +47,31 @@ namespace chi {
 	public:
 		Array( Size count = 0 )	{ this->alloc.allocate( count ); init(); }
 		Array( Size count, const T& copy )	{ this->alloc.allocate( count ); init( copy ); }
-		Array( const Array<T>& other )	{ this->alloc.allocate( other.alloc.count() ); init( other.alloc.ptr() ); }
+		Array( const Array<T, Alloc>& other ) {
+			this->alloc.allocate( other.count() );
+			this->init( other );
+		}
+		Array( const List<T>& other ) {
+			this->alloc.allocate( other.count() );
+			this->init( other );
+		}
 		~Array() { this->destruct(); this->alloc.free(); }
+
+		void append( const List<T>& other ) {
+			Size old_count = this->count();
+			this->grow( other.count() );
+			
+			Size i = 0; Size j = old_count;
+			while ( i < other.count() ) {
+				(*this)[i] = other[j];
+			}
+		}
+
+		void append( const T& element ) {
+			Size new_index = this->count();
+			this->grow( 1 );
+			(*this)[ new_index ] = element;
+		}
 
 		T& at( Size index )	{ return this->alloc[ index ]; }
 		const T& at( Size index ) const	{ return this->alloc[ index ]; }
@@ -83,15 +106,15 @@ namespace chi {
 		T* ptr()	{ return this->alloc.ptr(); }
 		const T* ptr() const	{ return this->alloc.ptr(); }
 
-		void shrink( Size length ) {
-			CHI_ASSERT( length >= this->count(), "The length to shrink to should be less than the array already is." );
+		void shrink( Size decrement ) {
+			CHI_ASSERT( decrement > this->count(), "The length to shrink to should not be more than the array already is." );
 
 			// Destruct all losing elements
-			for ( Size i = this->count() - length; i < this->count(); i++ ) {
+			for ( Size i = this->count() - decrement; i < this->count(); i++ ) {
 				this->alloc[i].~T();
 			}
 
-			this->alloc.shrink( length );
+			this->alloc.shrink( decrement );
 		}
 
 		// Resizes the array and copies all elements to a new array if necessary.
@@ -102,14 +125,19 @@ namespace chi {
 				this->shrink( this->count() - new_length );
 		}
 
-		Array<T>& operator=( const Array<T>& other ) {
-			if ( this == &other )	return *this;
+		Array<T, Alloc>& operator=( const List<T>& other ) {
+			if ( (List<T>&)this == &other )	return *this;
 		
 			this->alloc.resize( other );
 			for ( Size i = 0; i < other.count(); i++ ) {
-				this->alloc[i] = other.alloc[i];
+				this->alloc[i] = other[i];
 			}
 
+			return *this;
+		}
+
+		Array<T, Alloc>& operator+=( const List<T>& other ) {
+			this->append( other );
 			return *this;
 		}
 	};

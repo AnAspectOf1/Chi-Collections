@@ -36,9 +36,18 @@ namespace chi {
 			(*this)[ count - 1 ] = character;
 		}
 
+		void append( const char* string ) {
+			size_t other_length = strlen( string );
+			Size old_length = this->length();
+			this->grow( other_length );
+			for ( Size i = 0; i < other_length; i++ ) {
+				this->at(old_length + i) = string[i];
+			}
+		}
+
 		Size length() const	{ return this->count() - 1; }
 
-		String& operator=( const char* string ) {
+		String<Alloc>& operator=( const char* string ) {
 			Size length = ::strlen( string );
 			
 			this->resize( length + 1 );
@@ -46,6 +55,23 @@ namespace chi {
 			for ( Size i = 0; i <= length; i++ ) {
 				this->alloc[i] = string[i];
 			}
+		}
+
+		String<Alloc> operator+( char character ) {
+			String<Alloc> new_string( this->length() + 1 );
+			new_string[ this->length() ] = character;
+			return new_string;
+		}
+
+		String<Alloc> operator+( const char* string ) {
+			size_t other_len = ::strlen( string );
+			Size old_len = this->length();
+			String<Alloc> new_string( old_len + other_len );
+
+			for ( Size i = 0; i < other_len; i++ ) {
+				new_string[ old_len + i ] = string[i];
+			}
+			return new_string;
 		}
 	};
 }

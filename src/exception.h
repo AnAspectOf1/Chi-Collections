@@ -13,6 +13,8 @@
 namespace chi {
 
 	class Exception {};
+
+	class AllocException : public Exception {};
 }
 
 #endif//_CHI_EXCEPTION_H
