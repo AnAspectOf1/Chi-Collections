@@ -1,0 +1,3 @@
+This is the Chi Collections library.
+This is a library containing collection/container classes mostly intended for the use in the one-lang compiler.
+Currently this library is in development, therefore all files are in the 'dev' branch.
