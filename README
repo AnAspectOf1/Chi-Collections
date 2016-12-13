@@ -1,3 +1,5 @@
-This is the Chi Collections library.
-This is a library containing collection/container classes mostly intended for the use in the one-lang compiler.
+This is the Chi library.
+This is a standard library mostly intended for the use in the one-lang compiler code.
+It contains collection/container classes such as arrays and strings.
+It also contains smart pointers.
 Currently this library is in development, therefore all files are in the 'dev' branch.
