@@ -8,22 +8,38 @@
 
 namespace chi {
 
-	class BaseString : public virtual List<char> {
+	class StringBase : public virtual ArrayBase<char> {
 	public:
 		virtual void append( char character ) = 0;
-		virtual Size length() const = 0;
+		virtual void append( const char* character ) = 0;
+		virtual Size length() const	{ return this->count() - 1; }
+
+		StringBase& operator=( const char* string ) {
+			Size length = ::strlen( string );
+			
+			this->resize( length + 1 );
+			
+			for ( Size i = 0; i <= length; i++ ) {
+				this->at(i) = string[i];
+			}
+
+			return *this;
+		}
+
+		StringBase& operator+=( char c ) {
+			this->append( c ); return *this;
+		}
 	};
 
 	template <class Alloc = StdAllocator<char>>
-	class String : public Array<char, Alloc>, public BaseString {
+	class String : public Array<char, Alloc>, public virtual StringBase {
 	public:
-		String() : Array<char, Alloc>( 1, '\0' ) {}
-		String( Size length ) : Array<char, Alloc>( length + 1, '\0' ) {}
+		String( Size length = 0 ) : Array<char, Alloc>( length + 1, '\0' ) {}
+		String( const String<Alloc>& other ) : Array<char, Alloc>( other ) {}
 		String( const char* string ) {
 			Size length = ::strlen( string );
-			
-			this->alloc.allocate( length + 1 );
-			this->alloc[ length ] = '\0';
+			this->alloc.resize( length + 1 );
+			this->init( string );
 		}
 		String( char character ) : Array<char>( 2 ) {
 			this->alloc[0] = character;
@@ -31,9 +47,10 @@ namespace chi {
 		}
 
 		void append( char character ) {
-			Size count = this->count();
+			Size old_len = this->length();
 			this->grow( 1 );
-			(*this)[ count - 1 ] = character;
+			(*this)[ old_len ] = character;
+			(*this)[ this->length() ] = '\0';
 		}
 
 		void append( const char* string ) {
@@ -45,20 +62,9 @@ namespace chi {
 			}
 		}
 
-		Size length() const	{ return this->count() - 1; }
-
-		String<Alloc>& operator=( const char* string ) {
-			Size length = ::strlen( string );
-			
-			this->resize( length + 1 );
-			
-			for ( Size i = 0; i <= length; i++ ) {
-				this->alloc[i] = string[i];
-			}
-		}
-
 		String<Alloc> operator+( char character ) {
 			String<Alloc> new_string( this->length() + 1 );
+			new_string.copy( this->ptr(), this->length() );
 			new_string[ this->length() ] = character;
 			return new_string;
 		}
@@ -68,6 +74,7 @@ namespace chi {
 			Size old_len = this->length();
 			String<Alloc> new_string( old_len + other_len );
 
+			new_string.copy( this->ptr(), this->length() );
 			for ( Size i = 0; i < other_len; i++ ) {
 				new_string[ old_len + i ] = string[i];
 			}
