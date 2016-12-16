@@ -2,48 +2,62 @@
 #define _CHI_PTR_H
 
 #include "exception.h"
+#include "int.h"
 #include <cstdlib>
 #include <cstring>
+#include <new>
 
 
 namespace chi {
 
-	class ConstPtrBase {
-	protected:
-		void* _ptr;
-
-	public:
-		ConstPtrBase( void* ptr = 0 ) : _ptr(ptr) {}
-
-		const void* ptr() const	{ return this->_ptr; }
-	};
-	class PtrBase : public virtual ConstPtrBase {
-	public:
-		void* ptr() const	{ return this->_ptr; }
-	};
-
 	template <class T>
-	class ConstPtr : public virtual ConstPtrBase {
+	class Ptr {
 	public:
-		const T* ptr() const	{ return (const T*)this->_ptr; }
-		const T& operator*() const	{ return *this->ptr(); }
-		const T* operator->() const	{ return this->ptr(); }
-	};
+		virtual ~Ptr() {}
 
-	template <class T>
-	class Ptr : public virtual ConstPtr<T>, public virtual PtrBase {
-	public:
-		T* ptr()	{ return (T*)this->_ptr; }
-		T& operator*()	{ return *this->ptr(); }
+		virtual T* ptr() = 0;
+		virtual const T* ptr() const = 0;
+	
+		T& operator*() {
+			CHI_ASSERT( this->ptr() == 0, "Can't dereference the pointer, it isn't allocated." );
+			return *this->ptr();
+		}
+		const T& operator*() const	{
+					CHI_ASSERT( this->ptr() == 0, "Can't dereference the pointer, it isn't allocated." );
+					return *this->ptr();
+		}
+
 		T* operator->()	{ return this->ptr(); }
+		const T* operator->() const	{ return this->ptr(); }
+		operator T*()	{ return (T*)this->ptr(); }
+		operator const T*() const	{ return this->ptr(); }
+
+		template <class D = T>
+		D& val() {
+			CHI_ASSERT( this->ptr() == 0, "Can't dereference the pointer, it isn't allocated." );
+			return *(D*)this->ptr();
+		}
+		template <class D = T>
+		const D& val() const {
+			CHI_ASSERT( this->ptr() == 0, "Can't dereference the pointer, it isn't allocated." );
+			return *(const D*)this->ptr();
+		}
 	};
 
 	template <class T>
-	class ConstManPtr : public virtual ConstPtr<T> {
-	protected:
-		Size size;
+	class UPtr : public Ptr<T> {
+	private:
+		UPtr<T>& operator=( const UPtr<T>& otheronst ) {}
+		UPtr( const UPtr<T>& copy ) {}
 
-		void init( const T& value ) { printf( "init\n" );
+	protected:
+		bool is_owner;
+
+		void free() {
+			delete this->_ptr;
+		}
+
+		void init( const T& value ) {
 			this->_ptr = ::malloc( sizeof(T) );
 			if ( this->_ptr == 0 )
 				throw AllocException();
@@ -52,66 +66,139 @@ namespace chi {
 		}
 
 	public:
-		ConstManPtr() : ConstPtrBase(0), size(0) {}
+		UPtr() : is_owner(false) {}
 
-		ConstManPtr( const T& copy ) : size(sizeof(T)) {
+		UPtr( const T& copy ) : is_owner(true) {
 			this->init( copy );
 		}
-
-		ConstManPtr( const ConstManPtr<T>& copy ) : ConstPtrBase() {
-			this->_ptr = const_cast<void*>((const void*)copy.ptr());
+		
+		UPtr( UPtr<T>&& other ) : is_owner(true) {
+			this->_ptr = const_cast<void*>((const void*)other.ptr());
+			other.is_owner = false;
 		}
 
-		~ConstManPtr()	{ ::free( this->_ptr ); }
+		~UPtr()	{ if (is_owner) this->free(); }
 
 
 		template <class A = T>
 		void alloc()	{
-			::free( this->_ptr );
-			this->_ptr = (A*)::malloc( sizeof(A) );
+			this->release();
+
+			this->_ptr = new (std::nothrow) A;
 			if ( this->_ptr == 0 )
 				throw AllocException();
-
-			this->size = sizeof(A);
-			new (this->_ptr) A();
+			this->is_owner = true;
 		}
 
-		const T* ptr() const	{ return (T*)this->_ptr; }
+		template <class I>
+		void assign( const I& value ) {
+			this->release();
 
+			this->_ptr = new (std::nothrow) I( value );
+			if ( this->_ptr == 0 )
+				throw AllocException();
+			this->is_owner = true;
+		}
 
-		ConstManPtr<T>& operator=( const ConstManPtr<T>& other ) {
-			if ( (const ConstManPtr<T>*)this == &other )	return *this;
+		void take( UPtr<T>& other ) {
+			this->release();
 
-			void* new_ptr = ::malloc( this->size );
-			if ( new_ptr == 0 )	throw AllocException();
-			
-			::memcpy( new_ptr, (const void*)other.ptr(), this->size );
+			other.is_owner = false;
+			this->_ptr = const_cast<void*>((const void*)other.ptr());
+			this->is_owner = true;
+		}
 
-			::free( this->_ptr );
-			this->_ptr = new_ptr;
-			this->size = other.size;
+		T* ptr()	{ return this->_ptr; }
+		const T* ptr() const	{ return this->_ptr; }
+
+		void release() {
+			if (this->is_owner) {
+				this->free();
+				this->is_owner = false;
+			}
+		}
+
+		UPtr<T>& operator=( UPtr<T>&& other ) {
+			if ( this == &other )	return *this;
+
+			this->release();
+
+			other.is_owner = false;
+			this->_ptr = other.ptr();
+			this.is_owner = true;
 
 			return *this;
 		}
-
-		operator T&() const	{ return *this->_ptr; }
-		operator const T*() const	{ return this->_ptr; }
 	};
 
 	template <class T>
-	class ManPtr : public ConstManPtr<T>, public virtual Ptr<T> {
-	public:
-		ManPtr() : ConstPtrBase(0) {}
+	class SPtr : public Ptr<T> {
+	protected:
+		T* _ptr;
+		Size* count;
 
-		ManPtr( const ManPtr<T>& copy ) : ConstPtrBase(), ConstManPtr<T>( copy ) {}
-		ManPtr( const T& value ) : ConstManPtr<T>( value ) {}
+		void release() {
+			CHI_ASSERT( this->count == (Size*)-1, "Double release SPtr" );
 
-		ManPtr<T>& operator=( const ConstManPtr<T>& other ) {
-			return *((ConstManPtr<T>*)this) = other;
+			if ( this->_ptr != 0 ) {
+				(*this->count)--;
+
+				if ( *this->count == 0 ) {
+					delete ((T*)this->_ptr);
+					delete this->count;
+#ifndef NDEBUG
+					this->_ptr = (T*)-1;
+					this->count = (Size*)-1;
+#endif
+				}
+			}
 		}
 
-		T* ptr()	{ return (T*)this->_ptr; }
-		operator T*()	{ return (T*)this->_ptr; }
+	public:
+		SPtr() : _ptr(0), count(0) {}
+
+		// Constructor for joining a shared pointer
+		SPtr( const SPtr<T>& copy ) {
+			this->_ptr = copy._ptr;
+			this->count = copy.count;
+			(*this->count)++;
+		}
+
+		~SPtr()	{ this->release(); }
+
+		SPtr<T>& operator=( const SPtr<T>& other ) {
+			CHI_ASSERT( this->_ptr != 0, "Assigning a pointer that is already assigned" );
+			if ( this == &other )	return *this;
+
+			this->_ptr = other._ptr;
+			this->count = other.count;
+			(*this->count)++;
+		
+			return *this;
+		}
+
+		template <class D>
+		void alloc() {
+			CHI_ASSERT( this->_ptr != 0, "Pointer already allocated" );
+
+			this->_ptr = new (std::nothrow) D();
+			if ( this->_ptr == 0 )	throw AllocException();
+			this->count = new (std::nothrow) Size(1);
+			if ( this->count == 0 )	throw AllocException();
+		}
+
+		template <class D>
+		void alloc( const D& value ) {
+			CHI_ASSERT( this->_ptr != 0, "Pointer already allocated" );
+
+			this->_ptr = new (std::nothrow) D(value);
+			if ( this->_ptr == 0 )	throw AllocException();
+			this->count = new (std::nothrow) Size(1);
+			if ( this->count == 0 )	throw AllocException();
+		}
+
+		T* ptr()	{ return this->_ptr; }
+		const T* ptr() const	{ return this->_ptr; }
 	};
 }
 

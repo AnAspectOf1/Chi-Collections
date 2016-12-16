@@ -7,11 +7,10 @@
 namespace chi {
 
 	template <class T>
-	class List : public Collection {
+	class List : public virtual Collection {
 	public:
 		virtual T& at( Size index ) = 0;
 		virtual const T& at( Size index ) const = 0;
-		virtual Size capacity() const = 0;
 
 		Size size() const	{ return this->count() * sizeof(T); }
 

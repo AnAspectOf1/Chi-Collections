@@ -4,6 +4,8 @@
 #include "exception.h"
 #include "int.h"
 #include <cstdlib>
+#include <new>
+#include <utility>
 
 
 namespace chi {
@@ -50,6 +52,7 @@ namespace chi {
 	class StdAllocator : public Allocator<T> {
 		T* _pointer;
 		Size _count;
+		Size _capacity;
 
 	public:
 		StdAllocator() : _pointer(0), _count(0) {}
@@ -58,47 +61,46 @@ namespace chi {
 			if ( count == 0 )
 				this->_pointer = 0;
 			else {
-				T* ptr = (T*)::malloc( count * sizeof(T) );
+				T* ptr = new (std::nothrow) T[count];
 				if ( ptr == 0 )	throw AllocException();
+
 				this->_pointer = ptr;
 			}		
 			this->_count = count;
+			this->_capacity = count;
 		}
 
-		Size capacity() const	{ return this->_count; }
+		Size capacity() const	{ return this->_capacity; }
 
 		Size count() const	{ return this->_count; }
 
-		void free()	{ ::free( this->_pointer ); }
+		void free()	{ delete[] this->_pointer; }
 
 		T* _ptr() const	{ return this->_pointer; }
 
 		void _grow( Size increment ) {
+			if ( increment == 0 )	return;
+
 			Size new_size = this->_count + increment;
 
-			T* new_ptr = (T*)::realloc( this->_pointer, new_size );
-			if ( new_ptr == 0 )	throw AllocException();
+			if ( new_size > this->_capacity ) {
+				if ( new_size > 1000 ) printf("realloc boem\n");
+				T* new_ptr = new (std::nothrow) T[new_size];
+				if ( new_ptr == 0 )	throw AllocException();
 
-			this->_pointer = new_ptr;
+				for ( Size i = 0; i < this->_count; i++ ) {
+					new_ptr[i] = std::move( this->_pointer[i] );
+				}
+
+				this->_pointer = new_ptr;
+				this->_capacity = new_size;
+			}
+
 			this->_count = new_size;
 		}
 
 		void _shrink( Size decrement ) {
-			Size new_size = this->_count - decrement;
-
-			if ( new_size > 0 ) {
-				T* new_ptr = (T*)::realloc( this->_pointer, new_size );
-	#ifndef NDEBUG
-				if ( new_ptr == 0 )	throw AllocException();
-	#endif
-				this->_pointer = new_ptr;
-				this->_count = new_size;
-			}
-			else {
-				::free( this->_pointer );
-				this->_pointer = 0;
-				this->_count = 0;
-			}
+			this->_count -= decrement;
 		}
 	};
 
@@ -122,7 +124,7 @@ namespace chi {
 			if ( count == 0 )
 				this->_pointer = 0;
 			else {
-				T* ptr = (T*)::malloc( this->_capacity * sizeof(T) );
+				T* ptr = new (std::nothrow) T[this->_capacity];
 				if ( ptr == 0 )	throw AllocException();
 				this->_pointer = ptr;
 			}		
@@ -133,18 +135,26 @@ namespace chi {
 
 		Size count() const	{ return this->_count; }
 
-		void free()	{ ::free( this->_pointer ); }
+		void free()	{ delete[] this->_pointer; }
 
 		T* _ptr() const	{ return this->_pointer; }
 
 		void _grow( Size increment ) {
+			if ( increment == 0 )	return;
+
 			Size new_size = this->_count + increment;
 
 			if ( new_size > this->_capacity ) {
 				Size new_capacity = this->multiplier * new_size;
+				printf("realloc capacity boem %p %d\n", this->_pointer, new_capacity);
 
-				T* new_ptr = (T*)::realloc( this->_pointer, new_capacity );
+				T* new_ptr = new (std::nothrow) T[new_capacity];
 				if ( new_ptr == 0 )	throw AllocException();
+	
+				if ( new_ptr != this->_pointer )
+				for ( Size i = 0; i < this->_count; i++ ) {
+					new_ptr[i] = std::move( this->_pointer[i] );
+				}
 
 				this->_pointer = new_ptr;
 				this->_capacity = new_capacity;
