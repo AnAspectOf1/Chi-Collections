@@ -9,6 +9,7 @@
 #include "op.h"
 #include <cstdlib>
 #include <new>
+#include <utility>
 
 
 namespace chi {
@@ -21,6 +22,8 @@ namespace chi {
 	public:
 		typedef T ElementType;
 
+		virtual T* ptr() = 0;
+		virtual const T* ptr() const = 0;
 		virtual void grow( Size increment ) = 0;
 		virtual void shrink( Size decrement ) = 0;
 

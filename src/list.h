@@ -12,7 +12,6 @@ namespace chi {
 	public:
 		virtual T& at( Size index ) = 0;
 		virtual const T& at( Size index ) const = 0;
-		virtual Size capacity() const = 0;
 
 
 		bool contains( const T& element ) const	{

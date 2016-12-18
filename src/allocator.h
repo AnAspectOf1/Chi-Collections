@@ -84,6 +84,7 @@ namespace chi {
 		}
 
 		void _shrink( Size decrement ) {
+			Size old_count = this->_count;
 
 			this->_count -= decrement;
 
