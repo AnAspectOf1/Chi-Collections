@@ -35,6 +35,10 @@ namespace chi {
 	class String : public Array<char, Alloc>, public virtual StringBase {
 	public:
 		String( Size length = 0 ) : Array<char, Alloc>( length + 1, '\0' ) {}
+		String( Size length, char c ) : Array<char, Alloc>( length + 1, c ) {
+			this->at( length ) = '\0';
+		}		
+		String( const List<char>& other ) : Array<char, Alloc>( other ) {}
 		String( const String<Alloc>& other ) : Array<char, Alloc>( other ) {}
 		String( const char* string ) {
 			Size length = ::strlen( string );

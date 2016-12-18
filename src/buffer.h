@@ -8,11 +8,14 @@
 
 namespace chi {
 
+	typedef ArrayBase<Byte> BufferBase;
+
 	template <class Alloc=StdAllocator<Byte>>
 	class Buffer : public Array<Byte, Alloc> {
 	public:
 		Buffer( Size length = 0 ) : Array<Byte, Alloc>( length ) {}
-		Buffer( Size count, const List<Byte>& other ) : Array<Byte, Alloc>( count, other ) {}
+		Buffer( Size length, Byte filler ) : Array<Byte, Alloc>( length, filler ) {}
+		Buffer( Size length, const List<Byte>& other ) : Array<Byte, Alloc>( length, other ) {}
 		Buffer( const List<Byte>& other ) : Array<Byte, Alloc>( other ) {}
 	};
 }

@@ -6,18 +6,102 @@
 #include "exception.h"
 #include "int.h"
 #include "list.h"
+#include "op.h"
 #include <cstdlib>
 #include <new>
 
 
 namespace chi {
 
-	template<class T>
+	template <class T>
+	class ArraySlice;
+
+	template <class T>
 	class ArrayBase : public virtual List<T> {
 	public:
+		typedef T ElementType;
+
 		virtual void grow( Size increment ) = 0;
 		virtual void shrink( Size decrement ) = 0;
-		virtual void resize( Size new_size ) = 0;
+
+		
+		void append( const List<T>& other ) {
+			Size old_count = this->count();
+			this->grow( other.count() );
+			
+			Size i = 0; Size j = old_count;
+			for ( ; i < other.count(); i++, j++ ) {
+				(*this)[j] = other[i];
+			}
+		}
+
+		void append( const T& element ) {
+			Size new_index = this->count();
+			this->grow( 1 );
+			(*this)[ new_index ] = element;
+		}
+
+		// Shrinks the array so that its size becomes 0.
+		void empty() {
+			this->shrink( this->count() );
+		}
+
+		// Returns the index of the element, otherwise returns (Size)-1.
+		template <class C>
+		Size find( const C& value ) {
+			static_assert( op::implementsEqual<T,C>(), "The element type of the array needs to implement the equal operator '==' for the given type of 'value'." );
+
+			for ( Size i = 0; i < this->count(); i++ ) {
+				if ( this->at(i) == value )
+					return i;
+			}
+
+			return Size(-1);
+		}
+
+		void prepend( const T& element ) {
+			this->grow(1);
+			
+			// Move everything up
+			for ( Size i = this->count() - 1; i > 0; i-- ) {
+				this->at(i) = this->at(i-1);
+			}
+
+			this->at(0) = element;
+		}
+
+		void remove( Size index ) {
+			for ( Size i = index; i < this->count(); i++ ) {
+				(*this)[i] = std::move( (*this)[i+1] );
+			}
+
+			this->shrink(1);
+		}
+
+		// Resizes the array and copies all elements to a new array if necessary.
+		void resize( Size new_length ) {
+			if ( new_length > this->count() )
+				this->grow( new_length - this->count() );
+			else if ( new_length < this->count() )
+				this->shrink( this->count() - new_length );
+		}
+
+		ArraySlice<T> slice( Size count, Size first = 0 ) {
+			return ArraySlice<T>( this, count, first );
+		}
+		const ArraySlice<T> slice( Size count, Size first = 0 ) const {
+			return ArraySlice<T>( this, count, first );
+		}
+
+		ArrayBase<T>& operator+=( const T& element ) {
+			this->append( element );
+			return *this;
+		}
+
+		ArrayBase& operator+=( const List<T>& other ) {
+			this->append( other );
+			return *this;
+		}
 	};
 
 	template <class T, class Alloc = StdAllocator<T>>
@@ -114,30 +198,15 @@ namespace chi {
 
 		Size count() const	{ return this->alloc.count(); }
 
-		// Makes the array empty
-		void empty() {
-			this->alloc.shrink( this->alloc.count() );
-		}
-
-		// Returns the index of the element, otherwise returns count().
-		Size find( const T& element ) const {
-			for ( Size i = 0; i < this->count(); i++ ) {
-				if ( this->alloc[i] == element )
-					return i;
-			}
-
-			return this->count();
-		}
-
-		void grow( Size length ) {
-			this->alloc.grow( length );
+		void grow( Size increment ) {
+			this->alloc.grow( increment );
 		}
 
 		T* ptr()	{ return this->alloc.ptr(); }
 		const T* ptr() const	{ return this->alloc.ptr(); }
 
 		void shrink( Size decrement ) {
-			CHI_ASSERT( decrement > this->count(), "The length to shrink to should not be more than the array already is." );
+			CHI_ASSERT( decrement > this->count(), "The decrement to shrink should not be more than the array's element count." );
 
 			// Destruct all losing elements
 			for ( Size i = this->count() - decrement; i < this->count(); i++ ) {
@@ -170,11 +239,38 @@ namespace chi {
 
 			return *this;
 		}
+	};
 
-		Array<T, Alloc>& operator+=( const List<T>& other ) {
-			this->append( other );
-			return *this;
+	// The ArraySlice extends a regular slice by providing additional array functions
+	template <class T>
+	class ArraySlice : public Slice<T>, public virtual ArrayBase<T> {
+		friend ArrayBase<T>;
+
+		ArrayBase<T>* array;
+
+	protected:
+		ArraySlice( ArrayBase<T>* array, Size count, Size first = 0 ) : Slice<T>( array, count, first ), array(array) {}
+
+	public:
+
+		void grow( Size increment ) {
+			this->array->grow( increment );
+
+			for ( Size i = this->array->count(); i >= this->_first + this->_count; i-- ) {
+				(*this->array)[i + increment] = (*this->array)[i];
+			}
 		}
+
+		void shrink( Size decrement ) {
+			for ( Size i = 0, j = this->_first + this->_count - decrement; i < decrement; i++, j++ ) {
+				(*this->array)[j] = (*this->array)[j + decrement];
+			}
+
+			this->array->shrink( decrement );
+		}
+
+		T* ptr() override	{ return this->array->ptr(); }
+		const T* ptr() const override	{ return this->array->ptr(); }
 	};
 }
 
