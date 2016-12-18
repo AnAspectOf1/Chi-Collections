@@ -3,6 +3,7 @@
 
 #include "exception.h"
 #include "int.h"
+#include "list.h"
 #include <cstdlib>
 
 
@@ -12,6 +13,9 @@ namespace chi {
 	class Allocator {
 	public:
 		virtual void allocate( Size count ) = 0;
+		virtual void allocate( Size count, const T& filler ) = 0;
+		virtual void allocate( Size count, const T* copy ) = 0;
+		virtual void allocate( Size count, const List<T>& copy ) = 0;
 		virtual Size capacity() const = 0;
 		virtual Size count() const = 0;
 		virtual void free() = 0;
@@ -48,48 +52,96 @@ namespace chi {
 	// The StdAllocator simply allocates elements only when needed.
 	template <class T>
 	class StdAllocator : public Allocator<T> {
-		T* _pointer;
+	protected:
+		T* __ptr;
 		Size _count;
+		Size _cap;
 
 	public:
-		StdAllocator() : _pointer(0), _count(0) {}
+		StdAllocator() : __ptr(0), _count(0), _cap(0) {}
 
-		void allocate( Size count ) {
-			if ( count == 0 )
-				this->_pointer = 0;
-			else {
-				T* ptr = (T*)::malloc( count * sizeof(T) );
-				if ( ptr == 0 )	throw AllocException();
-				this->_pointer = ptr;
-			}		
-			this->_count = count;
-		}
+#define ONE_ALLOCATE( INIT ) \
+	CHI_ASSERT( this->__ptr != 0 && this->__ptr != (T*)-1, "Allocating with StdAllocator while already allocated, this is a memory leak" ); \
+	\
+	if ( count == 0 ) \
+		this->__ptr = 0; \
+	else { \
+		T* ptr = (T*)::malloc( count * sizeof(T) ); \
+		if ( ptr == 0 )	throw AllocException(); \
+		this->__ptr = ptr; \
+	\
+		for ( Size i = 0; i < count; i++ ) { \
+			new (this->__ptr + i) INIT; \
+		} \
+	} \
+	\
+	this->_count = count;
 
-		Size capacity() const	{ return this->_count; }
+		void allocate( Size count = 0 )	{ ONE_ALLOCATE( T() ) }
+				void allocate( Size count, const T& def_val )	{ ONE_ALLOCATE( T( def_val ) ) }
+				void allocate( Size count, const T* copy )	{ ONE_ALLOCATE( T( copy[i] ) ) }
+				void allocate( Size count, const List<T>& copy )	{ ONE_ALLOCATE( T( copy[i] ) ) }
+#undef ONE_ALLOCATE
+
+		Size capacity() const	{ return this->_cap; }
 
 		Size count() const	{ return this->_count; }
 
-		void free()	{ ::free( this->_pointer ); }
+		void destruct() {
+			for ( Size i = 0; i < this->_count; i++ ) {
+				this->__ptr[i].~T();
+			}
+		}
 
-		T* _ptr() const	{ return this->_pointer; }
+		void free()	{
+			CHI_ASSERT( this->__ptr == (T*)-1, "Double free in StdAllocator" );
+
+			this->destruct();
+			::free( this->__ptr );
+#ifndef NDEBUG
+			this->__ptr = (T*)-1;
+#endif
+		}
+
+		T* _ptr() const	{ return this->__ptr; }
 
 		void _grow( Size increment ) {
 			Size new_size = this->_count + increment;
 
-			T* new_ptr = (T*)::realloc( this->_pointer, new_size );
+			// Allocate new pointer
+			T* new_ptr = (T*)::malloc( new_size * sizeof(T) );
 			if ( new_ptr == 0 )	throw AllocException();
 
-			this->_pointer = new_ptr;
-			this->_count = new_size;
+			// Copy all elements to new ptr
+			Size i = 0;
+			for ( ; i < this->_count; i++ ) {
+				new (new_ptr + i) T( this->__ptr[i] );
+			}
+
+			// Destruct all elements of old ptr
+			for ( Size j = 0; j < this->_count; j++ ) {
+				this->__ptr[j].~T();
+			}
+
+			// Free old ptr
+			::free( this->__ptr );
+			
+			// Update pointer
+			this->__ptr = new_ptr;
+			this->_cap = new_size;
+
+			// Initialize new elements with default contructor
+			for ( ; this->_count < new_size; this->_count++ ) {
+				new (this->__ptr + this->_count) T();
+			}
 		}
 
 		void _shrink( Size decrement ) {
-			Size old_count = this->_count;
+			Size new_count = this->_count - decrement;
 
-			this->_count -= decrement;
-
-			for ( Size i = this->count(); i < old_count; i++ ) {
-				this->_pointer[i].~T();
+			// Destruct removed elements
+			for ( ; new_count < this->_count; this->_count-- ) {
+				this->__ptr[this->_count - 1].~T();
 			}
 		}
 	};
@@ -97,61 +149,67 @@ namespace chi {
 	// The FutureAllocator preallocates extra space when it grows so that future elements do not need to make expensive reallocations.
 	// It doesn't do anything when it shrinks.
 	template <class T>
-	class FutureAllocator : public Allocator<T> {
+	class FutureAllocator : public StdAllocator<T> {
 	protected:
-		T* _pointer;
-		Size _count;
-		Size _capacity;
 		float multiplier;
 
 	public:
-		FutureAllocator( float multiplier = 1.5 ) : _pointer(0), _count(0), _capacity(0), multiplier( multiplier ) {
+		FutureAllocator( float multiplier = 1.5 ) : StdAllocator<T>(), multiplier( multiplier ) {
 			CHI_ASSERT( multiplier < 1.0, "Multiplier should not be less than 1." );
 		}
 
-		void allocate( Size count ) {
-			this->_capacity = this->multiplier * count;
-			if ( count == 0 )
-				this->_pointer = 0;
-			else {
-				T* ptr = (T*)::malloc( this->_capacity * sizeof(T) );
-				if ( ptr == 0 )	throw AllocException();
-				this->_pointer = ptr;
-			}		
+#define ONE_ALLOCATE( INIT ) \
+			this->_cap = this->multiplier * count; \
+			if ( count == 0 ) \
+				this->__ptr = 0; \
+			else { \
+				T* ptr = (T*)::malloc( this->_cap * sizeof(T) ); \
+				if ( ptr == 0 )	throw AllocException(); \
+				this->__ptr = ptr; \
+			\
+				for ( Size i = 0; i < count; i++ ) { \
+					new (this->__ptr + i) INIT; \
+				} \
+			} \
 			this->_count = count;
-		}
-		
-		Size capacity() const	{ return this->_capacity; }
 
-		Size count() const	{ return this->_count; }
-
-		void free()	{ ::free( this->_pointer ); }
-
-		T* _ptr() const	{ return this->_pointer; }
+		void allocate( Size count = 0 )	{ ONE_ALLOCATE( T() ) }
+		void allocate( Size count, const T& def_val )	{ ONE_ALLOCATE( T( def_val ) ) }
+		void allocate( Size count, const T* copy )	{ ONE_ALLOCATE( T( copy[i] ) ) }
+		void allocate( Size count, const List<T>& copy )	{ ONE_ALLOCATE( T( copy[i] ) ) }
+#undef ONE_ALLOCATE
 
 		void _grow( Size increment ) {
 			Size new_size = this->_count + increment;
+			T* old_ptr = this->__ptr;
 
-			if ( new_size > this->_capacity ) {
+			if ( new_size > this->_cap ) {
 				Size new_capacity = this->multiplier * new_size;
 
-				T* new_ptr = (T*)::realloc( this->_pointer, new_capacity );
+				T* new_ptr = (T*)::malloc( new_capacity * sizeof(T) );
 				if ( new_ptr == 0 )	throw AllocException();
 
-				this->_pointer = new_ptr;
-				this->_capacity = new_capacity;
+				// Copy all existing elements to new ptr
+				Size i = 0;
+				for ( ; i < this->_count; i++ ) {
+					new (new_ptr + i) T( this->__ptr[i] );
+				}				
+
+				// Destruct all elements of old ptr
+				for ( Size j = 0; j < this->_count; j++ ) {
+					this->__ptr[j].~T();
+				}
+
+				// Free old ptr
+				::free( this->__ptr );
+
+				this->__ptr = new_ptr;
+				this->_cap = new_capacity;
 			}
 			
-			this->_count = new_size;
-		}
-
-		void _shrink( Size decrement ) {
-			Size old_count = this->_count;
-
-			this->_count -= decrement;
-
-			for ( Size i = this->count(); i < old_count; i++ ) {
-				this->_pointer[i].~T();
+			// Just initialize the new elements
+			for ( ; this->_count < new_size; this->_count++ ) {
+				new (this->__ptr + this->_count) T();
 			}
 		}
 	};

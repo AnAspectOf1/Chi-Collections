@@ -61,11 +61,11 @@ namespace chi {
 		Size* count;
 
 		void release() {
-			CHI_ASSERT( this->count == (Size*)-1, "Double release SPtr" );
+			CHI_ASSERT( this->count == (Size*)-1, "Double release (C)SPtr" );
 
 			if ( this->_ptr != 0 ) {
 				(*this->count)--;
-
+printf("Free ptr %p %d\n", this->_ptr, *this->count);
 				if ( *this->count == 0 ) {
 					delete ((T*)this->_ptr);
 					delete this->count;
@@ -90,8 +90,9 @@ namespace chi {
 		~CSPtr()	{ this->release(); }
 
 		CSPtr<T>& operator=( const CSPtr<T>& other ) {
-			CHI_ASSERT( this->_ptr != 0, "Assigning a pointer that is already assigned" );
 			if ( this == &other )	return *this;
+
+			this->release();
 
 			this->_ptr = other._ptr;
 			this->count = other.count;

@@ -112,52 +112,17 @@ namespace chi {
 	protected:
 		Alloc alloc;
 
-		void destruct() {
-			for ( Size i = 0; i < this->alloc.count(); i++ ) {
-				this->alloc[i].~T();
-			}
-		}
-
-		// Initialize everything using the default contructor
-		void init() {			
-			for ( Size i = 0; i < this->alloc.count(); i++ ) {
-				new (&this->alloc[i]) T();
-			}
-		}
-		
-		// Initialize everything using copy contructor
-		void init( const T& copy ) {
-			for ( Size i = 0; i < this->alloc.count(); i++ ) {
-				new (&this->alloc[i]) T( copy );
-			}
-		}
-
-		// Initialize everything copying everything from other list
-		void init( const List<T>& other ) {			
-			for ( Size i = 0; i < this->alloc.count(); i++ ) {
-				new (&this->alloc[i]) T( other[i] );
-			}
-		}
-
-		// Initialize everything copying everything from other pointer
-		void init( const T* other ) {			
-			for ( Size i = 0; i < this->alloc.count(); i++ ) {
-				new (&this->alloc[i]) T( other[i] );
-			}
-		}
-
 	public:
-		Array( Size count = 0 )	{ this->alloc.allocate( count ); init(); }
-		Array( Size count, const T& copy )	{ this->alloc.allocate( count ); init( copy ); }
+		Array()	{}	// Leaving alloc to call default constructor which is the same as allocating with size 0
+		Array( Size count )	{ this->alloc.allocate( count ); }
+		Array( Size count, const T& copy )	{ this->alloc.allocate( count, copy ); }
 		Array( const Array<T, Alloc>& other ) {
-			this->alloc.allocate( other.count() );
-			this->init( other );
+			this->alloc.allocate( other.count(), other );
 		}
 		Array( const List<T>& other ) {
-			this->alloc.allocate( other.count() );
-			this->init( other );
+			this->alloc.allocate( other.count(), other );
 		}
-		~Array() { this->destruct(); this->alloc.free(); }
+		~Array() { this->alloc.free(); }
 
 		void append( const List<T>& other ) {
 			Size old_count = this->count();
@@ -210,11 +175,6 @@ namespace chi {
 
 		void shrink( Size decrement ) {
 			CHI_ASSERT( decrement > this->count(), "The decrement to shrink should not be more than the array's element count." );
-
-			// Destruct all losing elements
-			for ( Size i = this->count() - decrement; i < this->count(); i++ ) {
-				this->alloc[i].~T();
-			}
 
 			this->alloc.shrink( decrement );
 		}

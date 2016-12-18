@@ -12,9 +12,9 @@ namespace chi {
 		friend List<T>;
 
 	protected:
-		List<T>* list;
-		Size _first;
-		Size _count;
+		List<T>*const list;
+		const Size _first;
+		const Size _count;
 
 		Slice( List<T>* list, Size count, Size first = 0 ) : list(list), _first(first), _count(count) {}
 

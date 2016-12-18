@@ -2,6 +2,7 @@
 #define _CHI_LIST_H
 
 #include "collection.h"
+#include "op.h"
 #include "slice.h"
 
 
@@ -34,6 +35,8 @@ namespace chi {
 		}
 
 		bool equals( const List<T>& other ) const {
+			static_assert( op::implementsNotEqual<T>(), "List::equal requires the element type to implement the not-equal '!=' operator" );
+
 			if ( this->count() != other.count() )
 				return false;
 
@@ -74,10 +77,10 @@ namespace chi {
 		const T& operator[]( Size index ) const	{ return this->at( index ); }
 
 		bool operator==( const List<T>& other ) const {
-			return this->equals();
+			return this->equals( other );
 		}
 		bool operator!=( const List<T>& other ) const {
-			return !this->equals();
+			return !this->equals( other );
 		}
 	};
 }

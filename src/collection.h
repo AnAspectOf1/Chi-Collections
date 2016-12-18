@@ -8,6 +8,8 @@ namespace chi {
 
 	class Collection {
 	public:
+		virtual ~Collection() {}
+
 		virtual Size count() const = 0;
 	};
 }

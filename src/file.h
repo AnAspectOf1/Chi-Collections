@@ -5,6 +5,7 @@
 #include "io.h"
 #include "stream.h"
 #include "string.h"
+#include <fcntl.h>
 
 
 namespace chi {
@@ -17,27 +18,37 @@ namespace chi {
 		FileMode_Create = O_CREAT
 	};
 
-	class ReadFile : public virtual File, public virtual ReadFileStream {
+	class ReadFile : public virtual File, public ReadFileStream {
 	protected:
+		ReadFile() {}
 		ReadFile( int fd ) : FileStream( fd ) {}
 
 	public:
 		template <class T=void*>
 		static ReadFile open( const StringBase& path, int mode = 0 ) {
-			int fd = open( filename, O_RDONLY | mode );
+			return ReadFile::open( path.ptr(), mode );
+		}
+		template <class T=void*>
+		static ReadFile open( const char* path, int mode = 0 ) {
+			int fd = ::open( path, O_RDONLY | mode );
 			if ( fd == -1 )	throw UnknownIoException();
 			return ReadFile( fd );
 		}
 	};
 
-	class WriteFile : public virtual File, public virtual WriteFileStream {
+	class WriteFile : public virtual File, public WriteFileStream {
 	protected:
+		WriteFile() {}
 		WriteFile( int fd ) : FileStream( fd ) {}
 
 	public:
 		template <class T=void*>
-		static ReadFile open( const StringBase& path, int mode = 0 ) {
-			int fd = open( filename, O_WRONLY | mode );
+		static WriteFile open( const StringBase& path, int mode = 0 ) {
+			return WriteFile::open( path.ptr(), mode );
+		}
+		template <class T=void*>
+		static WriteFile open( const char* path, int mode = 0 ) {
+			int fd = ::open( path, O_WRONLY | mode );
 			if ( fd == -1 )	throw UnknownIoException();
 			return WriteFile( fd );
 		}
@@ -49,8 +60,12 @@ namespace chi {
 
 	public:
 		template <class T=void*>
-		static ReadFile open( const StringBase& path, int mode = 0 ) {
-			int fd = open( filename, O_RDWR | mode );
+		static WriteFile open( const StringBase& path, int mode = 0 ) {
+			return WriteFile::open( path.ptr(), mode );
+		}
+		template <class T=void*>
+		static ReadFile open( const char* path, int mode = 0 ) {
+			int fd = ::open( path, O_RDWR | mode );
 			if ( fd == -1 )	throw UnknownIoException();
 			return ReadWriteFile( fd );
 		}

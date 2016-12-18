@@ -9,6 +9,7 @@
 namespace chi {
 
 	typedef ArrayBase<Byte> BufferBase;
+	typedef ArraySlice<Byte> BufferSlice;
 
 	template <class Alloc=StdAllocator<Byte>>
 	class Buffer : public Array<Byte, Alloc> {

@@ -53,10 +53,20 @@ namespace chi {
 
 	class Writable {
 	public:
-		virtual chi::Size write( const chi::Buffer<>& buffer ) = 0;
+		virtual Size write( const Buffer<>& buffer ) = 0;
 
-		virtual bool writeByte( chi::Byte byte ) {
-			return this->write( chi::Buffer<>( 1, byte ) ) == 1;
+		virtual bool writeByte( Byte byte ) {
+			return this->write( Buffer<>( 1, byte ) ) == 1;
+		}
+
+		Size writeString( const ArrayBase<char>& string ) {
+			Buffer<> buffer( string.count() - 1 );
+
+			for ( Size i = 0; i < buffer.count(); i++ ) {
+				buffer[i] = string[i];
+			}
+
+			return this->write( buffer );
 		}
 	};
 
@@ -73,48 +83,62 @@ namespace chi {
 	};
 
 	class BufferedReadStream : public virtual ReadStream, public Seekable {
-		ReadStream& stream;
-		Buffer<FutureAllocator<Byte>> buffer;	// TODO: Transform this into some kind of linked list of buffers
-		Size block_size;
-		Size position;
+		ReadStream* stream;
+		Buffer<FutureAllocator<Byte>> buffer;	// TODO: Transform this into some kind of linked list of buffers, for better speed.
+		Size pos;
 
 	public:
-		BufferedReadStream( ReadStream& stream, Size block_size = 1024 ) : stream(stream), block_size(block_size), position(0) {}
+		BufferedReadStream( ReadStream* stream ) : stream(stream), pos(0) {}
 
-		Buffer<> read( chi::Size length ) {
-			Buffer<> buffer;
+		void close()	{ return this->stream->close(); }
 
-			if ( this->position + length < this->buffer.count() )
-				return this->buffer.slice( this->position, length );
+		void move( SSize position ) {
+			this->seek( this->pos + position );
+		}
 
-			// Else
-			// File up buffer with what we already know
-			Size i = 0;
-			for ( ; this->position < this->buffer.count(); i++, this->position++ ) {
-				buffer[i] = this->buffer[ this->position ];
+		Size position() const	{ return this->pos; }
 
+		void read( BufferBase& buffer ) {
+			if ( this->pos + buffer.count() < this->buffer.count() )
+				buffer = this->buffer.slice( this->pos, buffer.count() );
+
+			else {
+				// Fill up buffer with what we already know
+				Size i = 0;
+				for ( ; this->pos < this->buffer.count(); i++, this->pos++ ) {
+					buffer[i] = this->buffer[ this->pos ];
+
+				}
+
+				// Then read the rest from the stream
+				BufferSlice slice = buffer.slice( i, buffer.count() - i );
+				this->stream->read( slice );
+
+				// And add it to our buffer
+				this->buffer += slice;
 			}
-
-			// Then read the rest from the stream
-			ArraySlice<Byte> slice = buffer.slice( i, buffer.count() - i );
-			this->stream.read( slice );
-
-			return buffer;
 		}
 
 		Byte readByte()	{
 			Byte byte;			
 
-			if ( this->position < this->buffer.count() )
-				byte = this->buffer[ this->position ];
+			if ( this->pos < this->buffer.count() )
+				byte = this->buffer[ this->pos ];
 			else {
-				byte = this->stream.readByte();
+				byte = this->stream->readByte();
 				this->buffer += byte;
 			}
 
-			this->position++;
+			this->pos++;
 			return byte;
 		}
+
+		void seek( Size position ) {
+			CHI_ASSERT( position >= this->buffer.count(), "Can't seek beyond what is already read" );
+			
+			this->pos = position;
+		}
+
 	};
 }
 

@@ -67,25 +67,34 @@ namespace chi {
 
 			return true;
 		}
+		bool operator==( const StringBase& other ) const {
+			return List<char>::operator==( other );
+		}
 		bool operator!=( const char* string ) const {
 			return !( *this == string );
+		}
+		bool operator!=( const StringBase& other ) const {
+			return !( *this == other );
 		}
 	};
 
 	template <class Alloc = StdAllocator<char>>
 	class String : public Array<char, Alloc>, public virtual StringBase {
 	public:
+		using StringBase::contains;
+
 		String( Size length = 0 ) : Array<char, Alloc>( length + 1, '\0' ) {}
+		String( Size length, char filler ) : Array<char, Alloc>( length + 1, filler ) {
+			this->at( this->length() ) = '\0';
+		}		
 		String( const List<char>& other ) : Array<char, Alloc>( other ) {}
 		String( const String<Alloc>& other ) : Array<char, Alloc>( other ) {}
 		String( const char* string ) {
 			Size length = ::strlen( string );
-			this->alloc.resize( length + 1 );
-			this->init( string );
+			this->alloc.allocate( length + 1, string );
 		}
-		String( char character ) : Array<char>( 2 ) {
+		String( char character ) : Array<char>( 2, '\0' ) {
 			this->alloc[0] = character;
-			this->alloc[1] = '\0';
 		}
 
 		void append( char character ) {

@@ -12,21 +12,13 @@ namespace chi {
 
 	class IoException : public StreamException {};
 
-	class FileStream;
-	class ReadFileStream;
-	class WriteFileStream;
-
 	class UnknownIoException : public IoException {
-		friend FileStream;
-		friend ReadFileStream;
-		friend WriteFileStream;
 
 		int code;
 
-	protected:
+	public:
 		UnknownIoException() : code( errno ) {}
 
-	public:
 		const int& errorCode() const	{ return this->code; }
 	};
 
@@ -52,14 +44,14 @@ namespace chi {
 		}
 
 		void read( BufferBase& buffer ) {
-			if ( length == 0 )	return 0;
+			if ( buffer.count() == 0 )	return;
 
 			int read = ::read( this->fd, buffer.ptr(), buffer.count() );
 			if ( read == -1 )	throw UnknownIoException();
 			if ( read == 0 )	throw EndOfStreamException();
 
-			if ( (chi::Size)read < length )
-				buffer.shrink( length - read );
+			if ( (chi::Size)read < buffer.count() )
+				buffer.shrink( buffer.count() - read );
 		}
 
 		chi::Byte readByte() {

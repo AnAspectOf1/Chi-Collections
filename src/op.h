@@ -11,10 +11,18 @@ namespace op {
 	constexpr auto _equalType() -> decltype( T() == O() ) { \
 		return T() == O(); \
 	}
-
 	template <class T, class O> \
+	constexpr auto _notEqualType() -> decltype( T() == O() ) { \
+		return T() == O(); \
+	}
+
+	template <class T, class O = T> \
 	constexpr bool implementsEqual() { \
 		return std::is_same<bool, decltype( _equalType<T, O>() )>::value; \
+	}
+	template <class T, class O = T> \
+	constexpr bool implementsNotEqual() { \
+		return std::is_same<bool, decltype( _notEqualType<T, O>() )>::value; \
 	}
 } }
 
