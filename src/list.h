@@ -11,9 +11,18 @@ namespace chi {
 	template <class T>
 	class List : public Collection {
 	public:
-		virtual T& at( Size index ) = 0;
-		virtual const T& at( Size index ) const = 0;
+		virtual T& _at( Size index ) = 0;
+		virtual const T& _at( Size index ) const = 0;
 
+
+		T& at( Size index ) {
+			CHI_ASSERT( index >= this->count(), "Index out of bounds" );
+			return this->_at( index );
+		}
+		const T& at( Size index ) const {
+			CHI_ASSERT( index >= this->count(), "Index out of bounds" );
+			return this->_at( index );
+		}
 
 		bool contains( const T& element ) const	{
 			return this->find( element ) < this->count();

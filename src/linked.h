@@ -1,162 +1,165 @@
 #ifndef _CHI_LINKED_H
 #define _CHI_LINKED_H
 
-#include "collection.h"
 #include "exception.h"
 #include "int.h"
+#include "list.h"
 #include <new>
 
-// The Linked class represents a doubly-linked list.
+// TODO: Create a LinkedRefList (or some other name) that makes use of RefLink which should be able to maintain a derived instance of T.
 
 namespace chi {
 
 	template <class T>
-	class Link;
-	class Linked;
-
-	class LinkBase {
-		friend Linked;
-
-	protected:
-		LinkBase() : prev(0), next(0) {}
-
-	public:		
-		LinkBase* prev;
-		LinkBase* next;
-
-		template <class T>
-		void append( const T& element ) {
-			Link<T>* new_link = new(std::nothrow) Link<T>( element );
-			if ( new_link == 0 )	throw AllocException();
-
-			if ( this->next == 0 )
-				this->next = new_link;
-			else {
-				new_link->prev = this;
-				this->next->prev = new_link;
-				this->next = new_link;
-			}
-		}
-
-		template <class T>
-		void prepend( const T& element ) {
-			Link<T>* new_link = new(std::nothrow) Link<T>( element );
-			if ( new_link == 0 )	throw AllocException();
-
-			if ( this->prev == 0 )
-				this->prev = new_link;
-			else {
-				new_link->next = this;
-				new_link->prev = this->prev;
-				this->prev->next = new_link;
-				this->prev = new_link;
-			}
-		}
-	};
+	class LinkedList;
 
 	template <class T>
-	class Link : public LinkBase {
-		friend Linked;
+	class Link {
+		friend LinkedList<T>;
 
 	protected:
+		Link<T>* _next;
+
+		Link() : _next(0) {}
+		Link( const T& value ) : _next(0), element(value) {}
+
+	public:
 		T element;
 
-	public:
-		Link() {}
-		Link( const T& copy ) : element( copy ) {}
-
-		Link<T>& operator=( const T& element ) {
-			this->element = element;
-		}
+		Link<T>* next()	{ return this->_next; }
+		const Link<T>* next() const	{ return this->_next; }
 
 		T& operator*()	{ return this->element; }
+		const T& operator*() const	{ return this->element; }
 	};
 
-	class Linked : public Collection {
-		LinkBase* head;
-		SSize _first;
-		SSize _last;
-
+	/*template <class T>
+	class RefLink {
 	protected:
-		LinkBase* linkAt( SSize index ) const {
-			if ( index == 0 ) {
-				CHI_ASSERT( head == 0, "No head element available." );
-				return head;
+		RefLinkBase* _next;
+		T* e;
+
+		RefLinkBase() : _next(0) {}
+
+	public:
+		template <class E>
+		E& element()	{ return *(E*)this->e; }
+		template <class E>
+		const E& element() const	{ return *(E*)this->e; }
+
+		RefLinkBase* next()	{ return this->_next; }
+		const RefLinkBase* next() const	{ return this->_next; }
+
+		T& operator*()	{ return *this->e; }
+		const T& operator*() const	{ return *this->e; }
+	};*/
+
+	// The LinkedList class is a list that allocates a new element on the heap every time an element is added.
+	// The is an efficient class for lists that need to have single elements added to it very often, instead of using an array which needs to be reallocated every now and then copied over.
+	template <class T>
+	class LinkedList : public List<T> {
+	protected:
+		Link<T>* _head;
+		Size _count;
+
+		void _init( Link<T>** head, Size* count, const LinkedList<T>& copy ) {
+			Link<T>* link = copy._head;
+			if ( link == 0 ) {
+				*head = 0;
+				*count = 0;
 			}
-			else if ( index > 0 )
-				return linkAtForward( index );
-			else// if ( index < 0 )
-				return linkAtBackward( -index );
+			else {
+				*head = new (std::nothrow) Link<T>( **link);
+				if ( *head == 0 )	throw AllocException();
+				*count = 1;
+				Link<T>* our_link = *head;
+
+				while ( (link = link->_next) != 0 ) {
+					our_link->_next = new (std::nothrow) Link<T>( **link );
+					if ( our_link->_next == 0 )	throw AllocException();
+					(*count)++;
+					our_link = our_link->_next;
+				}
+			}
 		}
 
-		LinkBase* linkAtBackward( Size index ) const {
-			LinkBase* e = head;
+		Link<T>* _linkAt( Size index ) const {
+			Link<T>* link = this->_head;
 			for ( Size i = 0; i < index; i++ ) {
-				CHI_ASSERT( e->prev == 0, "Element at %d non-existant. Last one found at %d.", (int)index, (int)i );				
-
-				e = e->prev;
+				link = link->_next;
 			}
-			return e;
+			return link;
 		}
 
-		LinkBase* linkAtForward( Size index ) const {
-			LinkBase* e = head;
-			for ( Size i = 0; i < index; i++ ) {
-				CHI_ASSERT( e->next == 0, "Element at %d non-existant. Last one found at %d.", (int)index, (int)i );
-
-				e = e->next;
+		void freeLink( Link<T>* link ) {
+			if ( link != 0 ) {
+				this->freeLink( link->_next );
+#ifndef NDEBUG
+				link->_next = (Link<T>*)-1;
+#endif
+				delete link;
 			}
-			return e;
-		}
-
-		LinkBase* lastLink() {
-			LinkBase* e = head;
-			
-			while ( e->next != 0 ) {
-				e = e->next;
-			}
-			return e;
 		}
 
 	public:
-		Linked() : head(0), _first(0), _last(0) {}
-	
-		template <class T>
-		T& at( SSize index )	{ return ((Link<T>*)linkAt( index )).element; }
-		template <class T>
-		const T& at( SSize index ) const	{ return ((Link<T>*)this->linkAt( index )).element; }
+		LinkedList() : _head(0), _count(0) {}
+		LinkedList( const LinkedList& copy ) {
+			this->_init( &this->_head, &this->_count, copy );
+		}
+		~LinkedList() {
+			if ( this->_head != 0 )
+				this->freeLink( this->_head );
+		}
 
-		template <class T>
-		void append( const T& element ) {
-			
-			if ( this->head != 0 ) {
-				LinkBase* last_link = lastLink();
-
-				Link<T>* new_link = new(std::nothrow) Link<T>( element );
-				if ( new_link == 0 )	throw AllocException();
-	
-				last_link->next = new_link;
-				_last++;
+		void append( const T& value ) {
+			if ( this->_head == 0 ) {
+				this->_head = new (std::nothrow) Link<T>( value );
+				if ( this->_head == 0 )	throw AllocException();
+				this->_count = 1;
 			}
 			else {
-				Link<T>* new_link = new(std::nothrow) Link<T>( element );
-				if ( new_link == 0 )	throw AllocException();
-
-				this->head = new_link;
+				Link<T>& link = this->lastLink();
+				link._next = new (std::nothrow) Link<T>( value );
+				if ( link._next == 0 )	throw AllocException();
+				this->_count++;
 			}
 		}
 
-		Size count() const	{ return _last - _first + ( this->head != 0 ? 1 : 0 ); }
+		T& _at( Size index ) override	{ return *this->linkAt( index ); }
+		const T& _at( Size index ) const override	{ return *this->linkAt( index ); }
 
-		LinkBase* first() {
-			return linkAtBackward( _first );
+		Size count() const override	{ return this->_count; }
+
+		T& head()	{ return **this->_head; }
+		const T& head() const	{ return **this->_head; }
+
+		Link<T>& lastLink()	{ return this->linkAt( this->_count - 1 ); }
+		const Link<T>& lastLink() const	{ return this->linkAt( this->_count - 1 ); }
+		
+		Link<T>& linkAt( Size index )	{ return *this->_linkAt( index ); }
+		const Link<T>& linkAt( Size index ) const	{ return *this->_linkAt( index ); }
+
+
+		LinkedList<T>& operator=( const LinkedList<T>& other ) {
+			if ( this == &other )	return *this;
+
+			Link<T>* new_head;
+			Size new_count;
+			this->_init( &new_head, &new_count, other );
+
+			this->freeLink( this->_head );
+			
+			this->_head = new_head;
+			this->_count = new_count;
+
+			return *this;
 		}
 
-		LinkBase* last() {
-			return linkAtBackward( _last );
+		LinkedList<T>& operator+=( const T& element ) {
+			this->append( element );
+			return *this;
 		}
 	};
-
 }
 
 #endif//_CHI_LINKED_H

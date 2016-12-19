@@ -45,7 +45,7 @@ namespace chi {
 		StringBase& operator=( const StringBase& other ) {
 			this->resize( other.size() );
 
-			for ( Size i = 0; i <= other.size(); i++ ) {
+			for ( Size i = 0; i < other.size(); i++ ) {
 				this->at(i) = other[i];
 			}
 
@@ -53,7 +53,8 @@ namespace chi {
 		}
 
 		StringBase& operator+=( char c ) {
-			this->append( c ); return *this;
+			this->append( c );
+			return *this;
 		}
 
 		bool operator==( const char* string ) const {
@@ -91,7 +92,8 @@ namespace chi {
 		String( const String<Alloc>& other ) : Array<char, Alloc>( other ) {}
 		String( const char* string ) {
 			Size length = ::strlen( string );
-			this->alloc.allocate( length + 1, string );
+			this->alloc.allocate( length + 1 );
+			this->copy( string, length + 1 );
 		}
 		String( char character ) : Array<char>( 2, '\0' ) {
 			this->alloc[0] = character;
@@ -139,6 +141,14 @@ namespace chi {
 			for ( Size i = 0; i < other_len; i++ ) {
 				new_string[ old_len + i ] = string[i];
 			}
+			return new_string;
+		}
+
+		String<Alloc> operator+( const StringBase& string ) {
+			String<Alloc> new_string( this->length() + string.length() );
+
+			new_string.copy( *this );
+			new_string.copy( string, this->length() );
 			return new_string;
 		}
 	};

@@ -96,6 +96,21 @@ namespace chi {
 			return ArraySlice<T>( this, count, first );
 		}
 
+		ArrayBase<T>& operator=( const List<T>& other ) {		
+			// TODO: Implement an assignment function in alloc so that when the array is grown it doesn't need to have the default constructor automatically called on new elements
+			this->resize( other.count() );
+			for ( Size i = 0; i < other.count(); i++ ) {
+				(*this)[i] = other[i];
+			}
+
+			return *this;
+		}
+
+		ArrayBase<T>& operator=( const ArrayBase<T>& other ) {
+			*this = (const List<T>&)other;
+			return *this;
+		}
+
 		ArrayBase<T>& operator+=( const T& element ) {
 			this->append( element );
 			return *this;
@@ -112,17 +127,27 @@ namespace chi {
 	protected:
 		Alloc alloc;
 
+		void init( Size count, const T& val ) {
+			for ( Size i = 0; i < count; i++ ) {
+				this->alloc[i] = val;
+			}
+		}
+
 	public:
 		Array()	{}	// Leaving alloc to call default constructor which is the same as allocating with size 0
 		Array( Size count )	{ this->alloc.allocate( count ); }
-		Array( Size count, const T& copy )	{ this->alloc.allocate( count, copy ); }
+		Array( Size count, const T& copy )	{ this->alloc.allocate( count ); this->init( count, copy ); }
 		Array( const Array<T, Alloc>& other ) {
-			this->alloc.allocate( other.count(), other );
+			this->alloc.allocate( other.count() );
+			this->copy( other );
 		}
 		Array( const List<T>& other ) {
-			this->alloc.allocate( other.count(), other );
+			this->alloc.allocate( other.count() );
+			this->copy( other );
 		}
-		~Array() { this->alloc.free(); }
+		~Array() {
+			this->alloc.free();
+		}
 
 		void append( const List<T>& other ) {
 			Size old_count = this->count();
@@ -140,8 +165,8 @@ namespace chi {
 			(*this)[ new_index ] = element;
 		}
 
-		T& at( Size index )	{ return this->alloc[ index ]; }
-		const T& at( Size index ) const	{ return this->alloc[ index ]; }
+		T& _at( Size index )	{ return this->alloc[ index ]; }
+		const T& _at( Size index ) const	{ return this->alloc[ index ]; }
 
 		Size capacity() const	{ return this->alloc.capacity(); }
 
@@ -149,18 +174,18 @@ namespace chi {
 			return this->find( element ) < this->count();
 		}
 
-		void copy( const T* other, Size count ) {
-			CHI_ASSERT( count > this->count(), "Can't copy more into array than it has allocated" );
+		void copy( const T* other, Size count, Size first = 0 ) {
+			CHI_ASSERT( first + count > this->count(), "Can't copy more into array than it has allocated" );
 
-			for ( Size i = 0; i < count; i++ ) {
-				this->at(i) = other[i];
+			for ( Size i = 0, j = first; i < count; i++, j++ ) {
+				this->at(j) = other[i];
 			}
 		}
-		void copy( const List<T>& other ) {
-			CHI_ASSERT( other.count() > this->count(), "Can't copy more into array than it has allocated" );
+		void copy( const List<T>& other, Size first = 0 ) {
+			CHI_ASSERT( first + other.count() > this->count(), "Can't copy more into array than it has allocated" );
 
-			for ( Size i = 0; i < other.count(); i++ ) {
-				this->at(i) = other[i];
+			for ( Size i = 0, j = first; i < other.count(); i++, j++ ) {
+				this->at(j) = other[i];
 			}
 		}
 
@@ -195,6 +220,7 @@ namespace chi {
 
 		Array<T, Alloc>& operator=( const List<T>& other ) {
 		
+			// TODO: Implement an assignment function in alloc so that when the array is grown it doesn't need to have the default constructor automatically called on new elements
 			this->alloc.resize( other.count() );
 			for ( Size i = 0; i < other.count(); i++ ) {
 				this->alloc[i] = other[i];

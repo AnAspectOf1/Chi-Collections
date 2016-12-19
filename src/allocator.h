@@ -13,9 +13,6 @@ namespace chi {
 	class Allocator {
 	public:
 		virtual void allocate( Size count ) = 0;
-		virtual void allocate( Size count, const T& filler ) = 0;
-		virtual void allocate( Size count, const T* copy ) = 0;
-		virtual void allocate( Size count, const List<T>& copy ) = 0;
 		virtual Size capacity() const = 0;
 		virtual Size count() const = 0;
 		virtual void free() = 0;
@@ -60,28 +57,42 @@ namespace chi {
 	public:
 		StdAllocator() : __ptr(0), _count(0), _cap(0) {}
 
-#define ONE_ALLOCATE( INIT ) \
+#define CHI_ALLOCATE( INIT ) \
 	CHI_ASSERT( this->__ptr != 0 && this->__ptr != (T*)-1, "Allocating with StdAllocator while already allocated, this is a memory leak" ); \
 	\
 	if ( count == 0 ) \
 		this->__ptr = 0; \
 	else { \
-		T* ptr = (T*)::malloc( count * sizeof(T) ); \
+		/*T* ptr = (T*)::malloc( count * sizeof(T) );*/ \
+		T* ptr = new (std::nothrow) T( INIT ); \
 		if ( ptr == 0 )	throw AllocException(); \
 		this->__ptr = ptr; \
 	\
-		for ( Size i = 0; i < count; i++ ) { \
+		/*for ( Size i = 0; i < count; i++ ) { \
 			new (this->__ptr + i) INIT; \
-		} \
+		}*/ \
 	} \
 	\
 	this->_count = count;
 
-		void allocate( Size count = 0 )	{ ONE_ALLOCATE( T() ) }
-				void allocate( Size count, const T& def_val )	{ ONE_ALLOCATE( T( def_val ) ) }
-				void allocate( Size count, const T* copy )	{ ONE_ALLOCATE( T( copy[i] ) ) }
-				void allocate( Size count, const List<T>& copy )	{ ONE_ALLOCATE( T( copy[i] ) ) }
-#undef ONE_ALLOCATE
+		void allocate( Size count ) {
+			CHI_ASSERT( this->__ptr != 0 && this->__ptr != (T*)-1, "Allocating with StdAllocator while already allocated, this is a memory leak" );
+	
+			if ( count == 0 )
+				this->__ptr = 0;
+			else {
+				/*T* ptr = (T*)::malloc( count * sizeof(T) );*/
+				T* ptr = new (std::nothrow) T[ count ];
+				if ( ptr == 0 )	throw AllocException();
+				this->__ptr = ptr;
+		
+				/*for ( Size i = 0; i < count; i++ ) { \
+					new (this->__ptr + i) INIT; \
+				}*/
+			} 
+			
+			this->_count = count;
+		}
 
 		Size capacity() const	{ return this->_cap; }
 
@@ -96,8 +107,8 @@ namespace chi {
 		void free()	{
 			CHI_ASSERT( this->__ptr == (T*)-1, "Double free in StdAllocator" );
 
-			this->destruct();
-			::free( this->__ptr );
+			//this->destruct();
+			delete[] this->__ptr;
 #ifndef NDEBUG
 			this->__ptr = (T*)-1;
 #endif
@@ -109,40 +120,36 @@ namespace chi {
 			Size new_size = this->_count + increment;
 
 			// Allocate new pointer
-			T* new_ptr = (T*)::malloc( new_size * sizeof(T) );
+			T* new_ptr = new T[ new_size ];
 			if ( new_ptr == 0 )	throw AllocException();
 
 			// Copy all elements to new ptr
 			Size i = 0;
 			for ( ; i < this->_count; i++ ) {
-				new (new_ptr + i) T( this->__ptr[i] );
+				new_ptr[i] = this->__ptr[i];
 			}
 
-			// Destruct all elements of old ptr
-			for ( Size j = 0; j < this->_count; j++ ) {
-				this->__ptr[j].~T();
-			}
-
-			// Free old ptr
-			::free( this->__ptr );
+			this->free();
 			
 			// Update pointer
 			this->__ptr = new_ptr;
 			this->_cap = new_size;
+			this->_count = new_size;
 
 			// Initialize new elements with default contructor
-			for ( ; this->_count < new_size; this->_count++ ) {
+			/*for ( ; this->_count < new_size; this->_count++ ) {
 				new (this->__ptr + this->_count) T();
-			}
+			}*/
 		}
 
 		void _shrink( Size decrement ) {
 			Size new_count = this->_count - decrement;
+			this->_count = new_count;
 
 			// Destruct removed elements
-			for ( ; new_count < this->_count; this->_count-- ) {
+			/*for ( ; new_count < this->_count; this->_count-- ) {
 				this->__ptr[this->_count - 1].~T();
-			}
+			}*/
 		}
 	};
 
@@ -158,59 +165,50 @@ namespace chi {
 			CHI_ASSERT( multiplier < 1.0, "Multiplier should not be less than 1." );
 		}
 
-#define ONE_ALLOCATE( INIT ) \
-			this->_cap = this->multiplier * count; \
-			if ( count == 0 ) \
-				this->__ptr = 0; \
-			else { \
-				T* ptr = (T*)::malloc( this->_cap * sizeof(T) ); \
-				if ( ptr == 0 )	throw AllocException(); \
-				this->__ptr = ptr; \
-			\
-				for ( Size i = 0; i < count; i++ ) { \
-					new (this->__ptr + i) INIT; \
-				} \
-			} \
-			this->_count = count;
 
-		void allocate( Size count = 0 )	{ ONE_ALLOCATE( T() ) }
-		void allocate( Size count, const T& def_val )	{ ONE_ALLOCATE( T( def_val ) ) }
-		void allocate( Size count, const T* copy )	{ ONE_ALLOCATE( T( copy[i] ) ) }
-		void allocate( Size count, const List<T>& copy )	{ ONE_ALLOCATE( T( copy[i] ) ) }
-#undef ONE_ALLOCATE
+		void allocate( Size count ) {
+			this->_cap = this->multiplier * count;
+			if ( count == 0 )
+				this->__ptr = 0;
+			else {
+				/*T* ptr = (T*)::malloc( this->_cap * sizeof(T) );*/
+				T* ptr = new (std::nothrow) T[ this->_cap ];
+				if ( ptr == 0 )	throw AllocException();
+				this->__ptr = ptr;
+
+				/*for ( Size i = 0; i < count; i++ ) { \
+					new (this->__ptr + i) INIT; \
+				}*/
+			}
+			this->_count = count;
+		}
 
 		void _grow( Size increment ) {
 			Size new_size = this->_count + increment;
-			T* old_ptr = this->__ptr;
 
 			if ( new_size > this->_cap ) {
 				Size new_capacity = this->multiplier * new_size;
 
-				T* new_ptr = (T*)::malloc( new_capacity * sizeof(T) );
+				T* new_ptr = new (std::nothrow) T[ new_capacity ];
 				if ( new_ptr == 0 )	throw AllocException();
 
 				// Copy all existing elements to new ptr
 				Size i = 0;
 				for ( ; i < this->_count; i++ ) {
-					new (new_ptr + i) T( this->__ptr[i] );
+					new_ptr[i] = this->__ptr[i];
 				}				
 
-				// Destruct all elements of old ptr
-				for ( Size j = 0; j < this->_count; j++ ) {
-					this->__ptr[j].~T();
-				}
-
-				// Free old ptr
-				::free( this->__ptr );
+				this->free();
 
 				this->__ptr = new_ptr;
 				this->_cap = new_capacity;
 			}
 			
-			// Just initialize the new elements
-			for ( ; this->_count < new_size; this->_count++ ) {
+			this->_count = new_size;
+			// Just initialize the new elements with the default constructor
+			/*for ( ; this->_count < new_size; this->_count++ ) {
 				new (this->__ptr + this->_count) T();
-			}
+			}*/
 		}
 	};
 }
