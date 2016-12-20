@@ -3,6 +3,7 @@
 
 #include "exception.h"
 #include <chi/buffer.h>
+#include <chi/linked.h>
 #include <chi/string.h>
 
 
@@ -36,7 +37,19 @@ namespace chi {
 			return this->readByte();
 		}
 
-		virtual chi::String<> readString( chi::Size length ) {
+		String<> readLine() {
+			LinkedList<char> buffer;
+
+			char c;
+			while ( (c = this->readChar()) != '\n' ) {
+				buffer += c;
+			}
+
+			buffer += '\n';
+			return buffer;
+		}
+
+		chi::String<> readString( chi::Size length ) {
 			chi::String<> string( length + 1 );
 			chi::Buffer<> buffer = this->read( length );
 			
@@ -82,7 +95,10 @@ namespace chi {
 		virtual void move( chi::SSize steps )	{ this->seek( (chi::SSize)this->position() + steps ); }
 	};
 
-	class BufferedReadStream : public virtual ReadStream, public Seekable {
+	class ReadSeekStream : public virtual ReadStream, public virtual Seekable {};
+	class WriteSeekStream : public virtual WriteStream, public virtual Seekable {};
+
+	class BufferedReadStream : public ReadSeekStream {
 		ReadStream* stream;
 		Buffer<FutureAllocator<Byte>> buffer;	// TODO: Transform this into some kind of linked list of buffers, for better speed.
 		Size pos;

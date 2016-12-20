@@ -9,7 +9,10 @@
 namespace chi {
 
 	template <class T>
-	class List : public Collection {
+	class ListIterator;
+
+	template <class T>
+	class List : public Collection<T> {
 	public:
 		virtual T& _at( Size index ) = 0;
 		virtual const T& _at( Size index ) const = 0;
@@ -33,6 +36,15 @@ namespace chi {
 
 			for ( Size i = 0, j = index; i < count; i++, j++ ) {
 				this->at(j) = other[i];
+			}
+		}
+		void copy( const Collection<T>& other, Size index = 0 ) {
+			Size j = 0;
+			for ( auto i = other.begin(); i.valid(), i = i.next() ) {
+				CHI_ASSERT( j >= this->count(), "Reached list boundaries while copying from collection" );
+
+				this->at(j) = *i;
+				j++;
 			}
 		}
 		void copy( const List<T>& other, Size index = 0 ) {
@@ -90,6 +102,35 @@ namespace chi {
 		}
 		bool operator!=( const List<T>& other ) const {
 			return !this->equals( other );
+		}
+	};
+
+	struct ListIteratorInfo {
+		List<T>* list;
+		Size index;
+	};
+
+	template <class T>
+	class ListIterator : public Iterator<T, ListIteratorInfo> {
+		friend List<T>;
+
+	protected:
+		ListIterator( List<T>* list, Size index ) : info({list, index}) {}
+
+	public:
+		bool valid() const {
+			return this->info.index < this->info.list->count();
+		}
+
+		T* _get() const override {
+			return &this->info.list[ this->info.index ];
+		}
+
+		Iterator<T, ListIteratorInfo> _prev() const {
+			return ListIterator( this->info.list, this->info.index - 1 );
+		}
+		Iterator<T, ListIteratorInfo> _next() const {
+			return ListIterator( this->info.list, this->info.index + 1 );
 		}
 	};
 }

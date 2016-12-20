@@ -101,6 +101,10 @@ namespace chi {
 		}
 	};
 
+	class ReadSeekFileStream : public virtual ReadFileStream, public virtual SeekFileStream {};
+	class WriteSeekFileStream : public virtual WriteFileStream, public virtual SeekFileStream {};
+	class ReadWriteSeekFileStream : public virtual ReadSeekFileStream, public virtual WriteSeekFileStream {};
+
 	class StderrStream : public WriteFileStream {
 	public:
 		StderrStream() : FileStream( 2 ) {}

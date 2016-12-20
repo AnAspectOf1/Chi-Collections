@@ -1,6 +1,7 @@
 #ifndef _CHI_LINKED_H
 #define _CHI_LINKED_H
 
+#include "collection.h"
 #include "exception.h"
 #include "int.h"
 #include "list.h"
@@ -31,6 +32,29 @@ namespace chi {
 
 		T& operator*()	{ return this->element; }
 		const T& operator*() const	{ return this->element; }
+	};
+
+	template <class T>
+	class LinkIterator : public Iterator<T, Link<T>*> {
+		friend LinkedList<T>;
+
+	protected:
+		LinkIterator( Link<T>* link ) : info(link) {}
+
+		bool valid() const {
+			return this->info != 0;
+		}
+
+		T* _get() const override {
+			return &this->info->element;
+		}
+
+		Iterator<T, Link<T>*> _prev() const {
+			return LinkIterator( this->info );
+		}
+		Iterator<T, Link<T>*> _next() const {
+			return LinkIterator( this->info );
+		}
 	};
 
 	/*template <class T>

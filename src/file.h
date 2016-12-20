@@ -18,7 +18,7 @@ namespace chi {
 		FileMode_Create = O_CREAT
 	};
 
-	class ReadFile : public virtual File, public ReadFileStream {
+	class ReadFile : public virtual File, public ReadSeekFileStream {
 	protected:
 		ReadFile() {}
 		ReadFile( int fd ) : FileStream( fd ) {}
@@ -36,7 +36,7 @@ namespace chi {
 		}
 	};
 
-	class WriteFile : public virtual File, public WriteFileStream {
+	class WriteFile : public virtual File, public WriteSeekFileStream {
 	protected:
 		WriteFile() {}
 		WriteFile( int fd ) : FileStream( fd ) {}
@@ -54,7 +54,7 @@ namespace chi {
 		}
 	};
 
-	class ReadWriteFile : public ReadFile, public WriteFile {
+	class ReadWriteFile : public virtual ReadFile, public virtual WriteFile {
 	protected:
 		ReadWriteFile( int fd ) : FileStream( fd ) {}
 
