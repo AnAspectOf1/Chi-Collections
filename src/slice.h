@@ -19,10 +19,9 @@ namespace chi {
 		Slice( List<T>* list, Size count, Size first = 0 ) : list(list), _first(first), _count(count) {}
 
 	public:
-		T& _at( Size index )	{ return this->list->_at( this->_first + index ); }
-		const T& _at( Size index ) const	{ return this->list->_at( this->_first + index ); }
+		T& _at( Size index ) const override	{ return this->list->_at( this->_first + index ); }
 
-		Size count() const	{ return this->_count; }
+		Size count() const override	{ return this->_count; }
 	};
 }
 

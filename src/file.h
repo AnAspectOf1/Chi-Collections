@@ -31,7 +31,7 @@ namespace chi {
 		template <class T=void*>
 		static ReadFile open( const char* path, int mode = 0 ) {
 			int fd = ::open( path, O_RDONLY | mode );
-			if ( fd == -1 )	throw UnknownIoException();
+			if ( fd == -1 )	throw IoException();
 			return ReadFile( fd );
 		}
 	};
@@ -49,7 +49,7 @@ namespace chi {
 		template <class T=void*>
 		static WriteFile open( const char* path, int mode = 0 ) {
 			int fd = ::open( path, O_WRONLY | mode );
-			if ( fd == -1 )	throw UnknownIoException();
+			if ( fd == -1 )	throw IoException();
 			return WriteFile( fd );
 		}
 	};
@@ -66,7 +66,7 @@ namespace chi {
 		template <class T=void*>
 		static ReadFile open( const char* path, int mode = 0 ) {
 			int fd = ::open( path, O_RDWR | mode );
-			if ( fd == -1 )	throw UnknownIoException();
+			if ( fd == -1 )	throw IoException();
 			return ReadWriteFile( fd );
 		}
 	};

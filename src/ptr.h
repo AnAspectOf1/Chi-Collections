@@ -4,6 +4,7 @@
 #include "exception.h"
 #include <cstdlib>
 #include <cstring>
+#include <new>
 
 
 namespace chi {
@@ -99,6 +100,11 @@ namespace chi {
 			if ( this->_ptr != 0 )
 				(*this->count)++;
 		}
+		template <class B>
+		CSPtr( const CSPtr<B>& copy ) : _ptr(const_cast<T*>((const T*)copy.ptr())), count(copy.count) {
+			if ( this->_ptr != 0 )
+				(*this->count)++;
+		}
 
 		~CSPtr()	{ this->release(); }
 
@@ -115,7 +121,7 @@ namespace chi {
 			return *this;
 		}
 
-		template <class D>
+		template <class D = T>
 		void alloc() {
 			CHI_ASSERT( this->_ptr != 0, "Pointer already allocated" );
 
@@ -141,6 +147,13 @@ namespace chi {
 			}
 		}
 
+		template <class D>
+		static CSPtr<T> allocNew( const D& value ) {
+			CSPtr<T> pointer;
+			pointer.alloc( value );
+			return pointer;
+		}
+
 		bool allocated() const	{ return this->_ptr != 0; }
 
 		const T* ptr() const	{ return this->_ptr; }
@@ -158,21 +171,21 @@ namespace chi {
 		/*template <class D>
 		void alloc()	{ CSPtr<T>::alloc<D>(); }
 		template <class D>
-		void alloc( const D& value)	{ CSPtr<T>::alloc<D>( value ); }
+		void alloc( const D& value)	{ CSPtr<T>::alloc<D>( value ); }*/
 
-		template <class D>
+		/*template <class D = T>
 		static SPtr<T> allocNew() {
 			SPtr<T> pointer;
 			pointer.alloc<D>();
 			return pointer;
-		}
+		}*/
 
 		template <class D>
 		static SPtr<T> allocNew( const D& value ) {
 			SPtr<T> pointer;
 			pointer.alloc( value );
 			return pointer;
-		} */
+		}
 
 		SPtr<T>& operator=( const CSPtr<T>& other ) {
 			CSPtr<T>::operator=( other );

@@ -2,21 +2,20 @@
 #define _CHI_COLLECTION_H
 
 #include "int.h"
+#include "ptr.h"
 
 
 namespace chi {
 
-	template <class T, Info>
+	template <class T>
 	class Iterator {
-	protected:
-		Info info;
 
 	public:
-		//virtual ~Iterator {}
+		virtual ~Iterator() {}
 
 		virtual T* _get() const = 0;
-		virtual Iterator<T, Info> _prev() const = 0;
-		virtual Iterator<T, Info> _next() const = 0;
+		virtual SPtr<Iterator<T>> _prev() const = 0;
+		virtual SPtr<Iterator<T>> _next() const = 0;
 		virtual bool valid() const = 0;
 		
 		T& get() {
@@ -28,20 +27,20 @@ namespace chi {
 			return *this->_get();
 		}
 
-		Iterator<T> prev() {
+		SPtr<Iterator<T>> prev() {
 			CHI_ASSERT( this->first(), "Iterator can't reach before the first element" );
 			return this->_prev();
 		}
-		const Iterator<T> prev() const {
+		CSPtr<Iterator<T>> prev() const {
 			CHI_ASSERT( this->first(), "Iterator can't reach before the first element" );
 			return this->_prev();
 		}
 
-		Iterator<T> next() {
+		SPtr<Iterator<T>> next() {
 			CHI_ASSERT( this->last(), "Iterator can't reach beyond the last element" );
 			return this->_next();
 		}
-		const Iterator<T> next() const {
+		CSPtr<Iterator<T>> next() const {
 			CHI_ASSERT( this->last(), "Iterator can't reach beyond the last element" );
 			return this->_next();
 		}
@@ -58,10 +57,8 @@ namespace chi {
 	public:
 		virtual ~Collection() {}
 
-		virtual Size count() const = 0;
-
-		virtual Iterator<T>& _begin() const = 0;
-		virtual Iterator<T>& _end() const = 0;
+		virtual SPtr<Iterator<T>> _begin() const = 0;
+		virtual SPtr<Iterator<T>> _end() const = 0;
 
 		Iterator<T>& begin()	{ return this->_begin(); }
 		const Iterator<T>& begin() const	{ return this->_begin(); }

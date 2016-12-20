@@ -24,8 +24,7 @@ namespace chi {
 			this->_grow( increment );
 		}
 
-		T* ptr()	{ return this->_ptr(); }
-		const T* ptr() const	{ return this->_ptr(); }
+		T* ptr() const	{ return this->_ptr(); }
 		
 		void shrink( Size decrement ) {
 			this->_shrink( decrement );
@@ -38,10 +37,8 @@ namespace chi {
 				this->shrink( this->count() - count );
 		}
 
-		T& operator[]( Size index ) {
-			return this->ptr()[ index ];
-		}
-		const T& operator[]( Size index ) const {
+
+		T& operator[]( Size index ) const {
 			return this->ptr()[ index ];
 		}
 	};

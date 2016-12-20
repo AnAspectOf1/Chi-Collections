@@ -3,6 +3,7 @@
 
 #include "exception.h"
 #include <chi/buffer.h>
+#include <chi/dynamic.h>
 #include <chi/linked.h>
 #include <chi/string.h>
 
@@ -21,8 +22,8 @@ namespace chi {
 	public:
 		virtual void read( BufferBase& buffer ) = 0;
 
-		virtual chi::Byte readByte() {
-			chi::Buffer<> buffer(1);
+		virtual Byte readByte() {
+			Buffer<> buffer(1);
 			this->read( buffer );
 			return buffer[0];
 		}
@@ -34,19 +35,27 @@ namespace chi {
 		}
 
 		char readChar() {
-			return this->readByte();
+			char test = this->readByte();
+			return test;
 		}
 
 		String<> readLine() {
-			LinkedList<char> buffer;
+			//LinkedList<char> buffer;
+			DynamicString line;
 
-			char c;
-			while ( (c = this->readChar()) != '\n' ) {
-				buffer += c;
+			try {
+			char c = this->readChar();
+				while ( (c = this->readChar()) != '\n' ) {
+					line += c;
+				}
+			}
+			catch ( Exception& e ) {
+				printf("caught.....\n");
 			}
 
-			buffer += '\n';
-			return buffer;
+			line += '\n';
+			printf( "test......\n" );
+			return line;
 		}
 
 		chi::String<> readString( chi::Size length ) {
@@ -97,6 +106,7 @@ namespace chi {
 
 	class ReadSeekStream : public virtual ReadStream, public virtual Seekable {};
 	class WriteSeekStream : public virtual WriteStream, public virtual Seekable {};
+	class ReadWriteSeekStream : public virtual ReadSeekStream, public virtual WriteSeekStream {};
 
 	class BufferedReadStream : public ReadSeekStream {
 		ReadStream* stream;

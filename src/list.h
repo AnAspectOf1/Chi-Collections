@@ -14,9 +14,13 @@ namespace chi {
 	template <class T>
 	class List : public Collection<T> {
 	public:
-		virtual T& _at( Size index ) = 0;
-		virtual const T& _at( Size index ) const = 0;
+		virtual T& _at( Size index ) const = 0;
+		virtual Size count() const = 0;
 
+		
+		SPtr<Iterator<T>> _begin() const	{ return SPtr<Iterator<T>>::allocNew( ListIterator<T>( const_cast<List<T>*>(this), 0 ) ); }
+
+		SPtr<Iterator<T>> _end() const	{ return SPtr<Iterator<T>>::allocNew( ListIterator<T>( const_cast<List<T>*>(this), this->count() - 1 ) ); }
 
 		T& at( Size index ) {
 			CHI_ASSERT( index >= this->count(), "Index out of bounds" );
@@ -40,7 +44,7 @@ namespace chi {
 		}
 		void copy( const Collection<T>& other, Size index = 0 ) {
 			Size j = 0;
-			for ( auto i = other.begin(); i.valid(), i = i.next() ) {
+			for ( auto i = other.begin(); i.valid(); i = i.next() ) {
 				CHI_ASSERT( j >= this->count(), "Reached list boundaries while copying from collection" );
 
 				this->at(j) = *i;
@@ -105,32 +109,30 @@ namespace chi {
 		}
 	};
 
-	struct ListIteratorInfo {
-		List<T>* list;
-		Size index;
-	};
-
 	template <class T>
-	class ListIterator : public Iterator<T, ListIteratorInfo> {
+	class ListIterator : public Iterator<T> {
 		friend List<T>;
 
 	protected:
-		ListIterator( List<T>* list, Size index ) : info({list, index}) {}
+		List<T>* list;
+		Size index;
+
+		ListIterator( List<T>* list, Size index ) : list(list), index(index) {}
 
 	public:
 		bool valid() const {
-			return this->info.index < this->info.list->count();
+			return this->index < this->list->count();
 		}
 
 		T* _get() const override {
-			return &this->info.list[ this->info.index ];
+			return &(*this->list)[ this->index ];
 		}
 
-		Iterator<T, ListIteratorInfo> _prev() const {
-			return ListIterator( this->info.list, this->info.index - 1 );
+		SPtr<Iterator<T>> _prev() const {
+			return SPtr<Iterator<T>>::allocNew( ListIterator( this->list, this->index - 1 ) );
 		}
-		Iterator<T, ListIteratorInfo> _next() const {
-			return ListIterator( this->info.list, this->info.index + 1 );
+		SPtr<Iterator<T>> _next() const {
+			return SPtr<Iterator<T>>::allocNew( ListIterator( this->list, this->index + 1 ) );
 		}
 	};
 }

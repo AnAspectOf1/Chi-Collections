@@ -10,16 +10,17 @@
 
 namespace chi {
 
-	class IoException : public StreamException {};
-
-	class UnknownIoException : public IoException {
-
-		int code;
+	class IoException : public StreamException {
+		int _code;
 
 	public:
-		UnknownIoException() : code( errno ) {}
-
-		const int& errorCode() const	{ return this->code; }
+		IoException() : _code(errno) {}
+		IoException( int code ) : _code(code) {}
+	
+		const int& code() const	{ return this->_code; }
+		CSPtr<StringBase> message() const {
+			return CSPtr<StringBase>::allocNew( String<>( ::strerror( this->_code ) ) );
+		}
 	};
 
 	class FileStream : public virtual Stream {
@@ -31,7 +32,7 @@ namespace chi {
 	public:
 		void close() {
 			if ( ::close( this->fd ) != 0 )
-				throw UnknownIoException();
+				throw IoException();
 		}
 	};
 
@@ -40,14 +41,14 @@ namespace chi {
 		ReadFileStream() {}
 		ReadFileStream( const char* filename ) {
 			this->fd = open( filename, O_RDONLY );
-			if ( this->fd == -1 )	throw UnknownIoException();
+			if ( this->fd == -1 )	throw IoException();
 		}
 
 		void read( BufferBase& buffer ) {
 			if ( buffer.count() == 0 )	return;
 
 			int read = ::read( this->fd, buffer.ptr(), buffer.count() );
-			if ( read == -1 )	throw UnknownIoException();
+			if ( read == -1 )	throw IoException();
 			if ( read == 0 )	throw EndOfStreamException();
 
 			if ( (chi::Size)read < buffer.count() )
@@ -57,7 +58,7 @@ namespace chi {
 		chi::Byte readByte() {
 			chi::Byte byte;
 			int read = ::read( this->fd, &byte, 1 );
-			if ( read == -1 )	throw UnknownIoException();
+			if ( read == -1 )	throw IoException();
 			if ( read == 0 )	throw EndOfStreamException();
 
 			return byte;
@@ -70,14 +71,14 @@ namespace chi {
 
 		chi::Size write( const chi::Buffer<>& buffer ) override {
 			int written = ::write( this->fd, buffer.ptr(), buffer.size() );
-			if ( written == -1 )	throw UnknownIoException();
+			if ( written == -1 )	throw IoException();
 			
 			return written;
 		}
 
 		bool writeByte( Byte byte ) override {
 			int written = ::write( this->fd, &byte, 1 );
-			if ( written == -1 )	throw UnknownIoException();
+			if ( written == -1 )	throw IoException();
 			return written == 1;
 		}
 	};
@@ -86,24 +87,24 @@ namespace chi {
 	public:
 		Size position() const {
 			off_t offset = lseek( this->fd, 0, SEEK_CUR );
-			if ( offset == (off_t)-1 )	throw UnknownIoException();
+			if ( offset == (off_t)-1 )	throw IoException();
 			return offset;
 		}
 
 		void seek( Size position ) {
 			off_t offset = lseek( this->fd, position, SEEK_SET );
-			if ( offset == (off_t)-1 )	throw UnknownIoException();
+			if ( offset == (off_t)-1 )	throw IoException();
 		}
 
 		void move( SSize position ) {
 			off_t offset = lseek( this->fd, position, SEEK_CUR );
-			if ( offset == (off_t)-1 )	throw UnknownIoException();
+			if ( offset == (off_t)-1 )	throw IoException();
 		}
 	};
 
-	class ReadSeekFileStream : public virtual ReadFileStream, public virtual SeekFileStream {};
-	class WriteSeekFileStream : public virtual WriteFileStream, public virtual SeekFileStream {};
-	class ReadWriteSeekFileStream : public virtual ReadSeekFileStream, public virtual WriteSeekFileStream {};
+	class ReadSeekFileStream : public virtual ReadSeekStream, public virtual ReadFileStream, public virtual SeekFileStream {};
+	class WriteSeekFileStream : public virtual WriteSeekStream, public virtual WriteFileStream, public virtual SeekFileStream {};
+	class ReadWriteSeekFileStream : public virtual ReadWriteSeekStream, public virtual ReadSeekFileStream, public virtual WriteSeekFileStream {};
 
 	class StderrStream : public WriteFileStream {
 	public:
