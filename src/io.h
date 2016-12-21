@@ -19,7 +19,7 @@ namespace chi {
 	
 		const int& code() const	{ return this->_code; }
 		CSPtr<StringBase> message() const {
-			return CSPtr<StringBase>::allocNew( String<>( ::strerror( this->_code ) ) );
+			return CSPtr<String<>>::allocNew( ::strerror( this->_code ) );
 		}
 	};
 

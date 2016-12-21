@@ -15,6 +15,8 @@ namespace chi {
 
 	class Stream {
 	public:
+		virtual ~Stream() {}
+
 		virtual void close() = 0;
 	};
 
@@ -35,26 +37,19 @@ namespace chi {
 		}
 
 		char readChar() {
-			char test = this->readByte();
-			return test;
+			return this->readByte();
 		}
 
 		String<> readLine() {
 			//LinkedList<char> buffer;
 			DynamicString line;
 
-			try {
-			char c = this->readChar();
-				while ( (c = this->readChar()) != '\n' ) {
-					line += c;
-				}
-			}
-			catch ( Exception& e ) {
-				printf("caught.....\n");
+			char c;
+			while ( (c = this->readChar()) != '\n' ) {
+				line += c;
 			}
 
-			line += '\n';
-			printf( "test......\n" );
+			//line += '\n';
 			return line;
 		}
 
