@@ -149,6 +149,8 @@ namespace chi {
 			this->alloc.free();
 		}
 
+		T& _at( Size index ) const	{ return this->alloc[ index ]; }
+
 		void append( const List<T>& other ) {
 			Size old_count = this->count();
 			this->grow( other.count() );
@@ -164,9 +166,6 @@ namespace chi {
 			this->grow( 1 );
 			(*this)[ new_index ] = element;
 		}
-
-		T& _at( Size index )	{ return this->alloc[ index ]; }
-		const T& _at( Size index ) const	{ return this->alloc[ index ]; }
 
 		Size capacity() const	{ return this->alloc.capacity(); }
 

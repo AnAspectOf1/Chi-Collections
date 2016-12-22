@@ -18,7 +18,7 @@ namespace chi {
 		FileMode_Create = O_CREAT
 	};
 
-	class ReadFile : public virtual File, public ReadFileStream {
+	class ReadFile : public virtual File, public ReadSeekFileStream {
 	protected:
 		ReadFile() {}
 		ReadFile( int fd ) : FileStream( fd ) {}
@@ -31,12 +31,12 @@ namespace chi {
 		template <class T=void*>
 		static ReadFile open( const char* path, int mode = 0 ) {
 			int fd = ::open( path, O_RDONLY | mode );
-			if ( fd == -1 )	throw UnknownIoException();
+			if ( fd == -1 )	throw IoException();
 			return ReadFile( fd );
 		}
 	};
 
-	class WriteFile : public virtual File, public WriteFileStream {
+	class WriteFile : public virtual File, public WriteSeekFileStream {
 	protected:
 		WriteFile() {}
 		WriteFile( int fd ) : FileStream( fd ) {}
@@ -49,12 +49,12 @@ namespace chi {
 		template <class T=void*>
 		static WriteFile open( const char* path, int mode = 0 ) {
 			int fd = ::open( path, O_WRONLY | mode );
-			if ( fd == -1 )	throw UnknownIoException();
+			if ( fd == -1 )	throw IoException();
 			return WriteFile( fd );
 		}
 	};
 
-	class ReadWriteFile : public ReadFile, public WriteFile {
+	class ReadWriteFile : public virtual ReadFile, public virtual WriteFile {
 	protected:
 		ReadWriteFile( int fd ) : FileStream( fd ) {}
 
@@ -66,7 +66,7 @@ namespace chi {
 		template <class T=void*>
 		static ReadFile open( const char* path, int mode = 0 ) {
 			int fd = ::open( path, O_RDWR | mode );
-			if ( fd == -1 )	throw UnknownIoException();
+			if ( fd == -1 )	throw IoException();
 			return ReadWriteFile( fd );
 		}
 	};

@@ -9,11 +9,18 @@
 namespace chi {
 
 	template <class T>
-	class List : public Collection {
-	public:
-		virtual T& _at( Size index ) = 0;
-		virtual const T& _at( Size index ) const = 0;
+	class ListIterator;
 
+	template <class T>
+	class List : public Collection<T> {
+	public:
+		virtual T& _at( Size index ) const = 0;
+		virtual Size count() const = 0;
+
+		
+		SPtr<Iterator<T>> _begin() const	{ return SPtr<Iterator<T>>::allocNew( ListIterator<T>( const_cast<List<T>*>(this), 0 ) ); }
+
+		SPtr<Iterator<T>> _end() const	{ return SPtr<Iterator<T>>::allocNew( ListIterator<T>( const_cast<List<T>*>(this), this->count() - 1 ) ); }
 
 		T& at( Size index ) {
 			CHI_ASSERT( index >= this->count(), "Index out of bounds" );
@@ -33,6 +40,15 @@ namespace chi {
 
 			for ( Size i = 0, j = index; i < count; i++, j++ ) {
 				this->at(j) = other[i];
+			}
+		}
+		void copy( const Collection<T>& other, Size index = 0 ) {
+			Size j = 0;
+			for ( auto i = other.begin(); i.valid(); i = i.next() ) {
+				CHI_ASSERT( j >= this->count(), "Reached list boundaries while copying from collection" );
+
+				this->at(j) = *i;
+				j++;
 			}
 		}
 		void copy( const List<T>& other, Size index = 0 ) {
@@ -90,6 +106,33 @@ namespace chi {
 		}
 		bool operator!=( const List<T>& other ) const {
 			return !this->equals( other );
+		}
+	};
+
+	template <class T>
+	class ListIterator : public Iterator<T> {
+		friend List<T>;
+
+	protected:
+		List<T>* list;
+		Size index;
+
+		ListIterator( List<T>* list, Size index ) : list(list), index(index) {}
+
+	public:
+		bool valid() const {
+			return this->index < this->list->count();
+		}
+
+		T* _get() const override {
+			return &(*this->list)[ this->index ];
+		}
+
+		SPtr<Iterator<T>> _prev() const {
+			return SPtr<Iterator<T>>::allocNew( ListIterator( this->list, this->index - 1 ) );
+		}
+		SPtr<Iterator<T>> _next() const {
+			return SPtr<Iterator<T>>::allocNew( ListIterator( this->list, this->index + 1 ) );
 		}
 	};
 }

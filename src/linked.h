@@ -1,6 +1,7 @@
 #ifndef _CHI_LINKED_H
 #define _CHI_LINKED_H
 
+#include "collection.h"
 #include "exception.h"
 #include "int.h"
 #include "list.h"
@@ -11,10 +12,13 @@
 namespace chi {
 
 	template <class T>
+	class LinkIterator;
+	template <class T>
 	class LinkedList;
 
 	template <class T>
 	class Link {
+		friend LinkIterator<T>;
 		friend LinkedList<T>;
 
 	protected:
@@ -31,6 +35,31 @@ namespace chi {
 
 		T& operator*()	{ return this->element; }
 		const T& operator*() const	{ return this->element; }
+	};
+
+	template <class T>
+	class LinkIterator : public Iterator<T> {
+		friend LinkedList<T>;
+
+	protected:
+		Link<T>* link;
+
+		LinkIterator( Link<T>* link ) : link(link) {}
+
+		bool valid() const {
+			return this->link != 0;
+		}
+
+		T* _get() const override {
+			return &this->link->element;
+		}
+
+		SPtr<Iterator<T>> _prev() const {
+			return SPtr<Iterator<T>>::allocNew( LinkIterator( const_cast<Link<T>*>(this->link) ) );
+		}
+		SPtr<Iterator<T>> _next() const {
+			return SPtr<Iterator<T>>::allocNew( LinkIterator( const_cast<Link<T>*>(this->link) ) );
+		}
 	};
 
 	/*template <class T>
@@ -111,6 +140,12 @@ namespace chi {
 				this->freeLink( this->_head );
 		}
 
+		T& _at( Size index ) const override	{ return **this->_linkAt( index ); }
+
+		SPtr<Iterator<T>> _begin() const override	{ return SPtr<Iterator<T>>::allocNew( LinkIterator<T>( const_cast<Link<T>*>(&this->firstLink()) ) ); }
+
+		SPtr<Iterator<T>> _end() const override	{ return SPtr<Iterator<T>>::allocNew( LinkIterator<T>( const_cast<Link<T>*>(&this->firstLink()) ) ); }
+
 		void append( const T& value ) {
 			if ( this->_head == 0 ) {
 				this->_head = new (std::nothrow) Link<T>( value );
@@ -125,13 +160,13 @@ namespace chi {
 			}
 		}
 
-		T& _at( Size index ) override	{ return *this->linkAt( index ); }
-		const T& _at( Size index ) const override	{ return *this->linkAt( index ); }
-
 		Size count() const override	{ return this->_count; }
 
 		T& head()	{ return **this->_head; }
 		const T& head() const	{ return **this->_head; }
+
+		Link<T>& firstLink()	{ return *this->_head; }
+		const Link<T>& firstLink() const	{ return *this->_head; }
 
 		Link<T>& lastLink()	{ return this->linkAt( this->_count - 1 ); }
 		const Link<T>& lastLink() const	{ return this->linkAt( this->_count - 1 ); }

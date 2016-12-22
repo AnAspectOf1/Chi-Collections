@@ -3,6 +3,8 @@
 
 #include "exception.h"
 #include <chi/buffer.h>
+#include <chi/dynamic.h>
+#include <chi/linked.h>
 #include <chi/string.h>
 
 
@@ -13,6 +15,8 @@ namespace chi {
 
 	class Stream {
 	public:
+		virtual ~Stream() {}
+
 		virtual void close() = 0;
 	};
 
@@ -20,8 +24,8 @@ namespace chi {
 	public:
 		virtual void read( BufferBase& buffer ) = 0;
 
-		virtual chi::Byte readByte() {
-			chi::Buffer<> buffer(1);
+		virtual Byte readByte() {
+			Buffer<> buffer(1);
 			this->read( buffer );
 			return buffer[0];
 		}
@@ -36,7 +40,27 @@ namespace chi {
 			return this->readByte();
 		}
 
-		virtual chi::String<> readString( chi::Size length ) {
+		String<> readLine() {
+			//LinkedList<char> buffer;
+			DynamicString line;
+
+			try {
+				char c;
+				while ( (c = this->readChar()) != '\n' ) {
+					line += c;
+				}
+			}
+			catch ( EndOfStreamException& e ) {
+				if ( line.length() > 0 )
+					return line;
+				throw e;
+			}
+
+			//line += '\n';
+			return line;
+		}
+
+		chi::String<> readString( chi::Size length ) {
 			chi::String<> string( length + 1 );
 			chi::Buffer<> buffer = this->read( length );
 			
@@ -82,7 +106,11 @@ namespace chi {
 		virtual void move( chi::SSize steps )	{ this->seek( (chi::SSize)this->position() + steps ); }
 	};
 
-	class BufferedReadStream : public virtual ReadStream, public Seekable {
+	class ReadSeekStream : public virtual ReadStream, public virtual Seekable {};
+	class WriteSeekStream : public virtual WriteStream, public virtual Seekable {};
+	class ReadWriteSeekStream : public virtual ReadSeekStream, public virtual WriteSeekStream {};
+
+	class BufferedReadStream : public ReadSeekStream {
 		ReadStream* stream;
 		Buffer<FutureAllocator<Byte>> buffer;	// TODO: Transform this into some kind of linked list of buffers, for better speed.
 		Size pos;
