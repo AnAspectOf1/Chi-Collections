@@ -44,9 +44,16 @@ namespace chi {
 			//LinkedList<char> buffer;
 			DynamicString line;
 
-			char c;
-			while ( (c = this->readChar()) != '\n' ) {
-				line += c;
+			try {
+				char c;
+				while ( (c = this->readChar()) != '\n' ) {
+					line += c;
+				}
+			}
+			catch ( EndOfStreamException& e ) {
+				if ( line.length() > 0 )
+					return line;
+				throw e;
 			}
 
 			//line += '\n';
