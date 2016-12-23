@@ -145,6 +145,18 @@ namespace chi {
 			this->alloc.allocate( other.count() );
 			this->copy( other );
 		}
+		// This is a rather slow constructor as it needs to grow for every element it needs to copy
+		Array( const Collection<T>& other ) {
+			Iterator<T> i = other.begin();
+			Size j = 0;
+			while ( i.valid() ) {
+				this->alloc->grow(1);
+				this->alloc[j] = *i;
+
+				i = i.next();
+				j++;
+			}
+		}
 		~Array() {
 			this->alloc.free();
 		}
@@ -181,9 +193,11 @@ namespace chi {
 			}
 		}
 		void copy( const List<T>& other, Size first = 0 ) {
-			CHI_ASSERT( first + other.count() > this->count(), "Can't copy more into array than it has allocated" );
+			Size other_count = other.count();
 
-			for ( Size i = 0, j = first; i < other.count(); i++, j++ ) {
+			CHI_ASSERT( first + other_count > this->count(), "Can't copy more into array than it has allocated" );
+
+			for ( Size i = 0, j = first; i < other_count; i++, j++ ) {
 				this->at(j) = other[i];
 			}
 		}

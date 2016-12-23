@@ -89,27 +89,35 @@ namespace chi {
 	class LinkedList : public List<T> {
 	protected:
 		Link<T>* _head;
-		Size _count;
 
-		void _init( Link<T>** head, Size* count, const LinkedList<T>& copy ) {
+		void _init( Link<T>** head, const LinkedList<T>& copy ) {
 			Link<T>* link = copy._head;
-			if ( link == 0 ) {
+			if ( link == 0 )
 				*head = 0;
-				*count = 0;
-			}
+
 			else {
 				*head = new (std::nothrow) Link<T>( **link);
 				if ( *head == 0 )	throw AllocException();
-				*count = 1;
 				Link<T>* our_link = *head;
 
 				while ( (link = link->_next) != 0 ) {
 					our_link->_next = new (std::nothrow) Link<T>( **link );
 					if ( our_link->_next == 0 )	throw AllocException();
-					(*count)++;
 					our_link = our_link->_next;
 				}
 			}
+		}
+
+		Link<T>& _lastLink() const {
+			CHI_ASSERT( this->_head == 0, "This linked list has no links" );
+
+			Link<T>* link = this->_head;
+
+			while ( link->_next != 0 ) {
+				link = link->_next;
+			}
+
+			return *link;
 		}
 
 		Link<T>* _linkAt( Size index ) const {
@@ -131,9 +139,9 @@ namespace chi {
 		}
 
 	public:
-		LinkedList() : _head(0), _count(0) {}
+		LinkedList() : _head(0) {}
 		LinkedList( const LinkedList& copy ) {
-			this->_init( &this->_head, &this->_count, copy );
+			this->_init( &this->_head, copy );
 		}
 		~LinkedList() {
 			if ( this->_head != 0 )
@@ -150,26 +158,48 @@ namespace chi {
 			if ( this->_head == 0 ) {
 				this->_head = new (std::nothrow) Link<T>( value );
 				if ( this->_head == 0 )	throw AllocException();
-				this->_count = 1;
 			}
 			else {
 				Link<T>& link = this->lastLink();
 				link._next = new (std::nothrow) Link<T>( value );
 				if ( link._next == 0 )	throw AllocException();
-				this->_count++;
 			}
 		}
 
-		Size count() const override	{ return this->_count; }
+		// The count function counts the number of links manually
+		Size count() const override {
+			Size count = 0;
+			Link<T>* link = this->_head;
 
-		T& head()	{ return **this->_head; }
-		const T& head() const	{ return **this->_head; }
+			while ( link != 0 ) {
+				count++;
 
-		Link<T>& firstLink()	{ return *this->_head; }
-		const Link<T>& firstLink() const	{ return *this->_head; }
+				link = link->next();
+			}
 
-		Link<T>& lastLink()	{ return this->linkAt( this->_count - 1 ); }
-		const Link<T>& lastLink() const	{ return this->linkAt( this->_count - 1 ); }
+			return count;
+		}
+
+		T& head() {
+			CHI_ASSERT( this->_head == 0, "This linked list has no links" );
+			return **this->_head;
+		}
+		const T& head() const {
+			CHI_ASSERT( this->_head == 0, "This linked list has no links" );
+			return **this->_head;
+		}
+
+		Link<T>& firstLink() {
+			CHI_ASSERT( this->_head == 0, "This linked list has no links" );
+			return *this->_head; 
+		}
+		const Link<T>& firstLink() const {
+			CHI_ASSERT( this->_head == 0, "This linked list has no links" );
+			return *this->_head; 
+		}
+
+		Link<T>& lastLink()	{ return this->_lastLink(); }
+		const Link<T>& lastLink() const	{ return this->_lastLink(); }
 		
 		Link<T>& linkAt( Size index )	{ return *this->_linkAt( index ); }
 		const Link<T>& linkAt( Size index ) const	{ return *this->_linkAt( index ); }
@@ -179,13 +209,11 @@ namespace chi {
 			if ( this == &other )	return *this;
 
 			Link<T>* new_head;
-			Size new_count;
-			this->_init( &new_head, &new_count, other );
+			this->_init( &new_head, other );
 
 			this->freeLink( this->_head );
 			
 			this->_head = new_head;
-			this->_count = new_count;
 
 			return *this;
 		}

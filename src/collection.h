@@ -50,6 +50,11 @@ namespace chi {
 
 		T* operator->()	{ return this->_get(); }
 		const T* operator->() const	{ return this->_get(); }
+
+		SPtr<Iterator<T>> operator++()	{ return this->next(); }
+		CSPtr<Iterator<T>> operator++() const	{ return this->next(); }
+		SPtr<Iterator<T>> operator--()	{ return this->prev(); }
+		CSPtr<Iterator<T>> operator--() const	{ return this->prev(); }
 	};
 
 	template <class T>
