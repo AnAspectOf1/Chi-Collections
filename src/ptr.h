@@ -134,7 +134,7 @@ namespace chi {
 
 		template <class D = T>
 		void alloc() {
-			CHI_ASSERT( this->_ptr != 0, "Pointer already allocated" );
+			this->release();
 
 			this->_ptr = new (std::nothrow) D();
 			if ( this->_ptr == 0 )	throw AllocException();
@@ -147,7 +147,7 @@ namespace chi {
 
 		template <class D>
 		void alloc( const D& value ) {
-			CHI_ASSERT( this->_ptr != 0, "Pointer already allocated" );
+			this->release();
 
 			this->_ptr = new (std::nothrow) D( value );
 			if ( this->_ptr == 0 )	throw AllocException();
