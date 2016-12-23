@@ -55,7 +55,7 @@ StdAllocator<char>>>
 		}
 		const V* operator[]( const K& key ) const {
 			Size foundAt = this->findKey( key );
-			if ( foundAt == -1 )
+			if ( foundAt == (Size)-1 )
 				return 0;
 
 			return &this->at( foundAt ).value;
