@@ -125,14 +125,14 @@ namespace chi {
 			return *this;
 		}
 
-		String<Alloc> operator+( char character ) {
+		String<Alloc> operator+( char character ) const {
 			String<Alloc> new_string( this->length() + 1 );
 			new_string.copy( this->ptr(), this->length() );
 			new_string[ this->length() ] = character;
 			return new_string;
 		}
 
-		String<Alloc> operator+( const char* string ) {
+		String<Alloc> operator+( const char* string ) const {
 			size_t other_len = ::strlen( string );
 			Size old_len = this->length();
 			String<Alloc> new_string( old_len + other_len );
@@ -144,7 +144,7 @@ namespace chi {
 			return new_string;
 		}
 
-		String<Alloc> operator+( const StringBase& string ) {
+		String<Alloc> operator+( const StringBase& string ) const {
 			String<Alloc> new_string( this->length() + string.length() );
 
 			new_string.copy( *this );

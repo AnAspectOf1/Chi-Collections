@@ -251,7 +251,7 @@ namespace chi {
 		ArrayBase<T>* array;
 
 	protected:
-		ArraySlice( ArrayBase<T>* array, Size count, Size first = 0 ) : Slice<T>( array, count, first ), array(array) {}
+		ArraySlice( const ArrayBase<T>* array, Size count, Size first = 0 ) : Slice<T>( const_cast<ArrayBase<T>*>(array), count, first ), array(const_cast<ArrayBase<T>*>(array)) {}
 
 	public:
 

@@ -166,6 +166,28 @@ namespace chi {
 			}
 		}
 
+		void append( const LinkedList<T>& other ) {
+			Link<T>* last_link = this->_head;
+
+			if ( this->_head != 0 )
+				last_link = &this->lastLink();
+			else {
+				if ( other._head != 0 )
+					this->_init( &this->_head, other );	// Copy
+				return;
+			}
+				
+			Link<T>* other_link = other._head;
+
+			while ( other_link != 0 ) {
+				last_link->_next = new (std::nothrow) Link<T>( **other_link );
+				if ( last_link->_next == 0 )	throw AllocException();
+
+				last_link = last_link->_next;
+				other_link = other_link->_next;
+			}
+		}
+
 		// The count function counts the number of links manually
 		Size count() const override {
 			Size count = 0;
@@ -220,6 +242,11 @@ namespace chi {
 
 		LinkedList<T>& operator+=( const T& element ) {
 			this->append( element );
+			return *this;
+		}
+
+		LinkedList<T>& operator+=( const LinkedList<T>& other ) {
+			this->append( other );
 			return *this;
 		}
 	};

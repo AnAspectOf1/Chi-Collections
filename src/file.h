@@ -11,7 +11,10 @@
 namespace chi {
 
 	// A file that is opened from a path
-	class File : public virtual SeekFileStream {};
+	class File : public virtual SeekFileStream {
+	public:
+		File() {}
+	};
 
 	enum FileMode {
 		FileMode_Append = O_APPEND,
@@ -20,10 +23,11 @@ namespace chi {
 
 	class ReadFile : public virtual File, public ReadSeekFileStream {
 	protected:
-		ReadFile() {}
 		ReadFile( int fd ) : FileStream( fd ) {}
 
 	public:
+		ReadFile() {}
+
 		template <class T=void*>
 		static ReadFile open( const StringBase& path, int mode = 0 ) {
 			return ReadFile::open( path.ptr(), mode );
