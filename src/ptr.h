@@ -28,8 +28,7 @@ namespace chi {
 			return this->ptr();
 		}
 
-		operator const T*() const	{
-			CHI_ASSERT( this->ptr() == 0, "Can't dereference the pointer, it isn't allocated" );
+		operator const T*() const {
 			return this->ptr();
 		}
 
@@ -60,7 +59,6 @@ namespace chi {
 		}
 
 		operator T*() const {
-			CHI_ASSERT( this->ptr() == 0, "Can't dereference the pointer, it isn't allocated" );
 			return (T*)this->ptr();
 		}
 
