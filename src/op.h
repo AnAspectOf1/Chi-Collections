@@ -4,7 +4,7 @@
 #include <type_traits>
 
 
-namespace chi {
+namespace qi {
 namespace op {
 
 	template <class T, class O> \

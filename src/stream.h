@@ -8,7 +8,7 @@
 #include <chi/string.h>
 
 
-namespace chi {
+namespace qi {
 
 	class StreamException : public Exception {};
 	class EndOfStreamException : public StreamException {};

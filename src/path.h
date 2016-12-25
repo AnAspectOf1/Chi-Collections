@@ -6,7 +6,7 @@
 #include "string.h"
 
 
-namespace chi {
+namespace qi {
 	
 	template <class Alloc = StdAllocator<char>>
 	class Path : public String<Alloc> {

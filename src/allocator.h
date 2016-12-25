@@ -7,7 +7,7 @@
 #include <cstdlib>
 
 
-namespace chi {
+namespace qi {
 
 	template <class T>
 	class Allocator {

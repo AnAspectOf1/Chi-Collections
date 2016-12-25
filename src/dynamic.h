@@ -1,12 +1,12 @@
 #ifndef _CHI_DYNAMIC_H
 #define _CHI_DYNAMIC_H
 
-#include <chi/array.h>
-#include <chi/buffer.h>
-#include <chi/string.h>
+#include "array.h"
+#include "buffer.h"
+#include "string.h"
 
 
-namespace chi {
+namespace qi {
 
 	template <class T>
 	class DynamicArray: public Array<T, FutureAllocator<T>> {

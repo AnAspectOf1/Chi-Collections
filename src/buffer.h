@@ -6,7 +6,7 @@
 #include "int.h"
 
 
-namespace chi {
+namespace qi {
 
 	typedef ArrayBase<Byte> BufferBase;
 	typedef ArraySlice<Byte> BufferSlice;

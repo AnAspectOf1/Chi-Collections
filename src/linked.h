@@ -9,7 +9,7 @@
 
 // TODO: Create a LinkedRefList (or some other name) that makes use of RefLink which should be able to maintain a derived instance of T.
 
-namespace chi {
+namespace qi {
 
 	template <class T>
 	class LinkIterator;

@@ -12,7 +12,7 @@
 #include <utility>
 
 
-namespace chi {
+namespace qi {
 
 	template <class T>
 	class ArraySlice;

@@ -2,7 +2,7 @@
 #define _CHI_SLICE_H
 
 
-namespace chi {
+namespace qi {
 
 	template <class T>
 	class List;

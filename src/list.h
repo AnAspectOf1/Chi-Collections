@@ -6,7 +6,7 @@
 #include "slice.h"
 
 
-namespace chi {
+namespace qi {
 
 	template <class T>
 	class ListIterator;

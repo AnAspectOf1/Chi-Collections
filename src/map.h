@@ -7,7 +7,7 @@
 #include "string.h"
 
 
-namespace chi {
+namespace qi {
 
 	template <class V, class K = String<StdAllocator<char>>>
 	struct MapEntry {

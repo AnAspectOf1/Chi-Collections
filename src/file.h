@@ -8,7 +8,7 @@
 #include <fcntl.h>
 
 
-namespace chi {
+namespace qi {
 
 	// A file that is opened from a path
 	class File : public virtual SeekFileStream {

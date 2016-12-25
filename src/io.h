@@ -8,7 +8,7 @@
 #include <fcntl.h>
 
 
-namespace chi {
+namespace qi {
 
 	class IoException : public StreamException {
 		int _code;

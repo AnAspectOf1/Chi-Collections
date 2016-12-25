@@ -3,14 +3,16 @@
 
 #ifndef NDEBUG
 #include <cstdio>
-#define CHI_ASSERT( COND, MSG... ) \
+#define QI_ASSERT( COND, MSG... ) \
 	if (COND) { fprintf( stderr, "[Chi]\tAssertion: %s:%s:%d: ", __FILE__, __func__, __LINE__ ); fprintf( stderr, MSG ); fprintf( stderr, ".\n" ); throw AssertException(); }
 #else
-#define CHI_ASSERT( COND, MSG... )
+#define QI_ASSERT( COND, MSG... )
 #endif
 
+#define CHI_ASSERT( COND, MSG... ) QI_ASSERT( COND, MSG )
 
-namespace chi {
+
+namespace qi {
 
 	class Exception {};
 

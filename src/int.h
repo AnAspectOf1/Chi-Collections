@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #endif
 
-namespace chi {
+namespace qi {
 
 	typedef unsigned char Byte;
 	typedef size_t Size;

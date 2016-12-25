@@ -5,7 +5,7 @@
 #include "ptr.h"
 
 
-namespace chi {
+namespace qi {
 
 	template <class T>
 	class Iterator {

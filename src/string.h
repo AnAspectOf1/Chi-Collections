@@ -8,7 +8,7 @@
 #define OS	(String<>)
 
 
-namespace chi {
+namespace qi {
 
 	class StringBase : public virtual ArrayBase<char> {
 	public:

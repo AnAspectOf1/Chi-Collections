@@ -9,7 +9,7 @@
 #include <type_traits>
 
 
-namespace chi {
+namespace qi {
 
 	template <class T>
 	class CPtr {
